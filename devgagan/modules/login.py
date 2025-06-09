@@ -81,7 +81,7 @@ async def generate_session(_, message):
         
     user_id = message.chat.id   
     
-    number = await _.ask(user_id, 'Please enter your phone number along with the country code. \nExample: +19876543210', filters=filters.text)   
+    number = await _.ask(user_id, 'Please enter your phone number with the country code. \nExample: +19876543210 ⚠️ Use Extra Telegram Account (Number) For Login', filters=filters.text)   
     phone_number = number.text
     try:
         await message.reply("📲 Sending OTP...")
