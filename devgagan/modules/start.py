@@ -308,6 +308,6 @@ async def guide_page_1(_, query: CallbackQuery):
         "────────────────────\n"
         "⚡ एक बार में कई पोस्ट डाउनलोड करने के लिए /batch का उपयोग करें।",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("➡️ Next", callback_data="guide_page_2")]
+            [InlineKeyboardButton("➡️ Next", callback_data="guide_command")]
         ])
     )
