@@ -273,7 +273,7 @@ async def guide_page_2(_, query: CallbackQuery):
         "Use /batch to download multiple posts at once 💀"
         "Powered by CHOSEN ONE ⚝",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Back", callback_data="guide")]
+            [InlineKeyboardButton("⬅️ Back", callback_data="guide_page_1")]
         ])
     )
 
@@ -314,6 +314,6 @@ async def guide_page_1(_, query: CallbackQuery):
         "────────────────────\n"
         "⚡ एक बार में कई पोस्ट डाउनलोड करने के लिए /batch का उपयोग करें।",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("➡ For More Guide", callback_data="guide_page_1")]
+            [InlineKeyboardButton("➡ For More Guide", callback_data="guide_page_2")]
         ])
     )
