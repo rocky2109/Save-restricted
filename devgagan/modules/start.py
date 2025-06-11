@@ -246,12 +246,42 @@ async def see_terms(client, callback_query):
 async def guide_command(_, message: Message):
     await message.reply_text(
         "📘 **How to Use Save Restricted Bot**\n\n"
-        "🔹 Just send me any **Telegram post link**, like:\n"
+        "🔹 Send me any **Telegram post link**, like:\n"
         "`https://t.me/channel_name/1234`\n\n"
-        "🔓 I’ll fetch the media or message from channels or groups that have forwarding disabled.\n\n"
-        "🔐 For **private channels**, use the /login command first.\n\n"
-        "🆘 Need full help? Type /help\n\n"
-        "⚓ Powered by @Real_Pirates",
+        "🔓 I’ll unlock content from restricted channels or groups.\n\n"
+        "🔐 For private channels, use /login first.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("➡️ Next", callback_data="guide_page_2")]
+        ]),
         quote=True
-)
- 
+    )
+
+# Second page callback handler
+@app.on_callback_query(filters.regex("guide_page_2"))
+async def guide_page_2(_, query: CallbackQuery):
+    await query.message.edit_text(
+        "🛠️ **More Tips**\n\n"
+        "✅ Supported post formats:\n"
+        "`https://t.me/channel/1234`\n"
+        "`https://t.me/c/123456789/55`\n\n"
+        "💡 Use /login only once per private source.\n"
+        "Use /id to get user or chat IDs.\n\n"
+        "⚓ Powered by @Real_Pirates",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Back", callback_data="guide_page_1")]
+        ])
+    )
+
+# Back to first page
+@app.on_callback_query(filters.regex("guide_page_1"))
+async def guide_page_1(_, query: CallbackQuery):
+    await query.message.edit_text(
+        "📘 **How to Use Save Restricted Bot**\n\n"
+        "🔹 Send me any **Telegram post link**, like:\n"
+        "`https://t.me/channel_name/1234`\n\n"
+        "🔓 I’ll unlock content from restricted channels or groups.\n\n"
+        "🔐 For private channels, use /login first.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("➡️ Next", callback_data="guide_page_2")]
+        ])
+    )
