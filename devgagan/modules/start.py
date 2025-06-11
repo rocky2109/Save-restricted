@@ -243,5 +243,17 @@ async def see_terms(client, callback_query):
         ]
     )
     await callback_query.message.edit_text(terms_text, reply_markup=buttons)
- 
+
+@app.on_message(filters.command("guide"))
+async def guide_command(_, message: Message):
+    await message.reply_text(
+        "📘 **How to Use Save Restricted Bot**\n\n"
+        "🔹 Just send me any **Telegram post link**, like:\n"
+        "`https://t.me/channel_name/1234`\n\n"
+        "🔓 I’ll fetch the media or message from channels or groups that have forwarding disabled.\n\n"
+        "🔐 For **private channels**, use the /login command first.\n\n"
+        "🆘 Need full help? Type /help\n\n"
+        "⚓ Powered by @Real_Pirates",
+        quote=True
+)
  
