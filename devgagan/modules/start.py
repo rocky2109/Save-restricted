@@ -244,11 +244,15 @@ async def see_terms(client, callback_query):
 
 @app.on_message(filters.command("guide"))
 async def guide_command(_, message: Message):
-    await message.reply_text(
-        "📘 **How to Use Save Restricted Bot**\n\n"
-        "🔹 Send me any **Telegram post link**, like:\n"        
-        "🔓 I’ll unlock content from restricted channels or groups.\n\n"
-        "🔐 For private channels, use /login first.",
+    image_url = "https://i.postimg.cc/BXkchVpY/image.jpg"  # Direct image URL from PostImage
+    await message.reply_photo(
+        photo=image_url,
+        caption=(
+            "📘 **How to Use Save Restricted Bot**\n\n"
+            "If you want to Download Posts From Public Channels/Groups Just Send me **Post Link**\n"        
+            "🔓 I'll unlock content from restricted channels or groups.\n\n"
+            "Use Next Button For Private Channels/Groups Guide 👇"
+        ),
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("➡️ Next", callback_data="guide_page_1")]
         ]),
@@ -261,11 +265,12 @@ async def guide_page_2(_, query: CallbackQuery):
     await query.message.edit_text(
         "🛠️ **More Tips**\n\n"
         "✅ Supported post formats:\n"
-        "`https://t.me/public_channel/1234`\n"
-        "`https://t.me/c/123456789/55`\n\n"
+        "Public Link:\n `https://t.me/public_channel/1234`\n"
+        "Private Link:\n `https://t.me/c/123456789/55`\n\n"
         "💡 Use /login only once per private source.\n"
         "Use /id to get user or chat IDs.\n\n"
-        "⚓ Powered by @Real_Pirates",
+        "Use /batch to download multiple posts at once 💀"
+        "Powered by CHOSEN ONE ⚝",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Back", callback_data="guide_page_1")]
         ])
@@ -294,7 +299,7 @@ async def guide_page_1(_, query: CallbackQuery):
         "⚡ Now use /batch to download multiple posts.\n"
         "▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭\n\n"
         "**हिंदी में 👇**\n\n"
-        "🔰 बॉट पर जाओ: **@SRC_PRO_BOT**\n"
+        "**@SRC_PRO_BOT** का कैसे उपयोग करें\n"
         "/start कमांड भेजें फिर\n"
         "/login कमांड भेजें\n"
         "────────────────────\n"
