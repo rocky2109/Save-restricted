@@ -246,8 +246,7 @@ async def see_terms(client, callback_query):
 async def guide_command(_, message: Message):
     await message.reply_text(
         "📘 **How to Use Save Restricted Bot**\n\n"
-        "🔹 Send me any **Telegram post link**, like:\n"
-        "`https://t.me/channel_name/1234`\n\n"
+        "🔹 Send me any **Telegram post link**, like:\n"        
         "🔓 I’ll unlock content from restricted channels or groups.\n\n"
         "🔐 For private channels, use /login first.",
         reply_markup=InlineKeyboardMarkup([
