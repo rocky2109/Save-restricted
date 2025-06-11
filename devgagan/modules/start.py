@@ -251,6 +251,7 @@ async def guide_command(_, message: Message):
             "📘 **How to Use Save Restricted Bot**\n\n"
             "If you want to Download Posts From Public Channels/Groups Just Send me **Post Link**\n"        
             "🔓 I'll unlock content from restricted channels or groups.\n\n"
+            "Use /settings for Settings 🌝
             "Use Next Button For Private Channels/Groups Guide 👇"
         ),
         reply_markup=InlineKeyboardMarkup([
@@ -313,6 +314,6 @@ async def guide_page_1(_, query: CallbackQuery):
         "────────────────────\n"
         "⚡ एक बार में कई पोस्ट डाउनलोड करने के लिए /batch का उपयोग करें।",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("➡️ Next", callback_data="guide_command")]
+            [InlineKeyboardButton("➡ For More Guide", callback_data="guide_command")]
         ])
     )
