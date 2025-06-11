@@ -264,13 +264,13 @@ async def guide_command(_, message: Message):
 @app.on_callback_query(filters.regex("^guide_page_2$"))  # ^ and $ ensure exact match
 async def guide_page_2(_, query: CallbackQuery):
     await query.message.edit_text(
-        "🛠️ **More Tips**\n\n"
-        "✅ Supported post formats:\n"
-        "Public Link:\n `https://t.me/public_channel/1234`\n"
+        "🛠️ **More Features 😎**\n\n"
+        "✅ Supported post formats:\n\n"
+        "Public Link:\n `https://t.me/public_channel/1234`\n\n"
         "Private Link:\n `https://t.me/c/123456789/55`\n\n"
         "💡 Use /login only once per private source.\n"
-        "Use /id to get user or chat IDs.\n\n"
-        "Use /batch to download multiple posts at once 💀"
+        "Use /id to get user or chat ID.\n\n"
+        "Use /batch to download multiple posts at once 💀\n\n"
         "Powered by CHOSEN ONE ⚝",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Back", callback_data="guide_page_1")]
@@ -314,6 +314,6 @@ async def guide_page_1(_, query: CallbackQuery):
         "────────────────────\n"
         "⚡ एक बार में कई पोस्ट डाउनलोड करने के लिए /batch का उपयोग करें।",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("➡ For More Guide", callback_data="guide_page_2")]
+            [InlineKeyboardButton("More Features 😎", callback_data="guide_page_2")]
         ])
     )
