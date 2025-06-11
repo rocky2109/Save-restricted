@@ -250,7 +250,7 @@ async def guide_command(_, message: Message):
         "🔓 I’ll unlock content from restricted channels or groups.\n\n"
         "🔐 For private channels, use /login first.",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("➡️ Next", callback_data="guide_page_2")]
+            [InlineKeyboardButton("➡️ Next", callback_data="guide_page_1")]
         ]),
         quote=True
     )
