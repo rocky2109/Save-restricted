@@ -268,7 +268,7 @@ async def guide_page_2(_, query: CallbackQuery):
         "✅ Supported post formats:\n\n"
         "Public Link:\n `https://t.me/public_channel/1234`\n\n"
         "Private Link:\n `https://t.me/c/123456789/55`\n\n"
-        "💡 Use /login only once per private source.\n"
+        "💡 Use /login only for private source.\n"
         "Use /id to get user or chat ID.\n\n"
         "Use /batch to download multiple posts at once 💀\n\n"
         "Powered by CHOSEN ONE ⚝",
