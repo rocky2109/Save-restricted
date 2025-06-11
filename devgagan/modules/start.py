@@ -274,14 +274,42 @@ async def guide_page_2(_, query: CallbackQuery):
 
 # Back to first page
 @app.on_callback_query(filters.regex("guide_page_1"))
-async def guide_page_1(_, query: CallbackQuery):
-    await query.message.edit_text(
-        "📘 **How to Use Save Restricted Bot**\n\n"
-        "🔹 Send me any **Telegram post link**, like:\n"
-        "`https://t.me/channel_name/1234`\n\n"
-        "🔓 I’ll unlock content from restricted channels or groups.\n\n"
-        "🔐 For private channels, use /login first.",
+async def guide_command(_, message: Message):
+    await message.reply_text(
+        "**📘 How to Use Save Restricted Bot**\n\n"
+        "💡 **For Private Channels/Groups**\n\n"
+        "**How to download or forward posts from Private Channel/Groups Where Save is Restricted 💀**\n"
+        "`────────────────────`\n"
+        "🔰 Go to bot: **@Src_pro_bot**\n\n"
+        "➡️ Send `/start`\n"
+        "➡️ Send `/login`\n"
+        "`────────────────────`\n"
+        "**📲 Enter your mobile number like:**\n"
+        `+91XXXXXXXXXX`\n\n"
+        "📨 You’ll get an OTP from Telegram official chat.\n"
+        "`────────────────────`\n"
+        "**🔢 Enter the OTP with spaces between digits.**\n"
+        "Example: If OTP is `54321`, enter: `5 4 3 2 1`\n\n"
+        "✅ You’ll be logged in successfully!\n"
+        "`────────────────────`\n"
+        "⚡ Now use `/batch` to download multiple posts.\n"
+        "▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭\n\n"
+        "**हिंदी में 👇**\n"
+        "<blockquote expandable>🔰 बॉट पर जाओ: >**@Src_pro_bot**\n\n"
+        "`/start` कमांड भेजें फिर\n"
+        "`/login` कमांड भेजें\n"
+        "`────────────────────`\n"
+        "📲 अब अपना मोबाइल नंबर दर्ज करें:\n"
+        `+91XXXXXXXXXX`\n\n"
+        "📨 Telegram की official चैट से OTP आएगा\n"
+        "`────────────────────`\n"
+        "🔢 OTP को स्पेस के साथ दर्ज करें\n"
+        "उदाहरण: `5 4 3 2 1`\n\n"
+        "✅ अब आप सफलतापूर्वक लॉग इन हो जाएंगे\n"
+        "`────────────────────`\n"
+        "⚡ एक बार में कई पोस्ट डाउनलोड करने के लिए `/batch` का उपयोग करें।</blockquote>",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("➡️ Next", callback_data="guide_page_2")]
-        ])
+        ]),
+        quote=True
     )
