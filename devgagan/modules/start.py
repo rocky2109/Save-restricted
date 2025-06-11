@@ -257,12 +257,12 @@ async def guide_command(_, message: Message):
     )
 
 # Second page callback handler
-@app.on_callback_query(filters.regex("guide_page_2"))
+@app.on_callback_query(filters.regex("^guide_page_2$"))  # ^ and $ ensure exact match
 async def guide_page_2(_, query: CallbackQuery):
     await query.message.edit_text(
         "🛠️ **More Tips**\n\n"
         "✅ Supported post formats:\n"
-        "`https://t.me/channel/1234`\n"
+        "`https://t.me/public_channel/1234`\n"
         "`https://t.me/c/123456789/55`\n\n"
         "💡 Use /login only once per private source.\n"
         "Use /id to get user or chat IDs.\n\n"
@@ -273,8 +273,7 @@ async def guide_page_2(_, query: CallbackQuery):
     )
 
 # Back to first page
-
-@app.on_callback_query(filters.regex("guide_page_1"))
+@app.on_callback_query(filters.regex("^guide_page_1$"))  # ^ and $ ensure exact match
 async def guide_page_1(_, query: CallbackQuery):
     await query.message.edit_text(
         "**📘 How to Use Save Restricted Bot**\n\n"
