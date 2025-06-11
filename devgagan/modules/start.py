@@ -251,7 +251,7 @@ async def guide_command(_, message: Message):
             "📘 **How to Use Save Restricted Bot**\n\n"
             "If you want to Download Posts From Public Channels/Groups Just Send me **Post Link**\n"        
             "🔓 I'll unlock content from restricted channels or groups.\n\n"
-            "Use /settings for Settings 🌝
+            "Use /settings for Settings 🌝\n\n"
             "Use Next Button For Private Channels/Groups Guide 👇"
         ),
         reply_markup=InlineKeyboardMarkup([
