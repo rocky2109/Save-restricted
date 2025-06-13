@@ -88,7 +88,9 @@ async def token_handler(client, message):
                 "✳️ I can save posts from channels or groups where forwarding is off.\n"
                 "✳️ Simply send the post link of a public channel.\n\nFor private channels, do /login. Send /help to know more."
             ),
-            reply_markup=keyboard
+            reply_markup=reply_markup,
+            message_effect_id=5104841245755180586)  # 🔥
+        
         )
         return  
  
