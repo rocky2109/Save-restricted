@@ -106,13 +106,14 @@ async def token_handler(client, message):
 
     # Send welcome message
     if len(args) <= 1 or not args[1].startswith("token"):
+        image_url = "https://freeimage.host/i/F35exwP"
         reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")],
             [InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")]
         ])
 
         await message.reply_photo(
-            msg.photo.file_id,
+            image_url,
             caption=(
                 "Hi 👋 Welcome!\n\n"
                 "✳️ I can save posts from channels or groups where forwarding is off.\n"
