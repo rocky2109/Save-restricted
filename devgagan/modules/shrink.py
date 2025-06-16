@@ -129,7 +129,7 @@ async def token_handler(client, message):
         message_effect_id=5104841245755180586
     )
 
- @app.on_message(filters.command("refer"))
+@app.on_message(filters.command("refer"))
 async def refer_command(client, message):
     user_id = message.chat.id
     bot_username = (await client.get_me()).username
