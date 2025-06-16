@@ -63,15 +63,6 @@ async def fetch_upload_method(user_id):
     user_data = collection.find_one({"user_id": user_id})
     return user_data.get("upload_method", "Pyrogram") if user_data else "Pyrogram"
 
-def format_caption(caption: str, sender=None, custom_caption=None) -> str:
-    if not caption:
-        return custom_caption or ""
-
-    # Replace @mentions
-    caption = re.sub(r'@\w+', '@Real_Pirates', caption)
-
-    # Replace links (http, https, www)
-    caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/Real_Pirates', caption)
 
 def format_caption_to_html(caption: str) -> str:
     if not caption:
@@ -87,9 +78,7 @@ def format_caption_to_html(caption: str) -> str:
     caption = re.sub(r"~~(.*?)~~", r"<s>\1</s>", caption)
     caption = re.sub(r"\|\|(.*?)\|\|", r"<details>\1</details>", caption)
     caption = re.sub(r"\[(.*?)\]\((.*?)\)", r'<a href="\2">\1</a>', caption)
-    caption = re.sub(r'@\w+', '@Real_Pirates', caption)
-    caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/Real_Pirates', caption)
-
+    
     return caption.strip()
 
     
@@ -120,7 +109,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     reply_to_message_id=topic_id,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
-                    progress_args=("╭─────────────────────╮\n│      **__Pyro Uploader__**\n├─────────────────────", edit, time.time())
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await dm.copy(LOG_GROUP)
                 
@@ -132,7 +121,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
-                    progress_args=("╭─────────────────────╮\n│      **__Pyro Uploader__**\n├─────────────────────", edit, time.time())
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await dm.copy(LOG_GROUP)
             else:
@@ -144,7 +133,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     reply_to_message_id=topic_id,
                     progress=progress_bar,
                     parse_mode=ParseMode.MARKDOWN,
-                    progress_args=("╭─────────────────────╮\n│      **__Pyro Uploader__**\n├─────────────────────", edit, time.time())
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await asyncio.sleep(2)
                 await dm.copy(LOG_GROUP)
@@ -219,7 +208,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             if chat in saved_channel_ids:
                 await app.edit_message_text(
                     message.chat.id, edit_id,
-                    "Sorry! This channel is protected by **__@II_LevelUP_II__**."
+                    "Sorry! This channel is protected by **__CHOSEN ONE ⚝__**."
                 )
                 return
             
@@ -286,7 +275,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             msg,
             file_name=file_name,
             progress=progress_bar,
-            progress_args=("╭─────────────────────╮\n│      **__Downloading__...**\n├─────────────────────", edit, time.time())
+            progress_args=("╔══━⚡️ Downloading ⚡️━══╗\n", edit, time.time())
         )
         
         caption = await get_final_caption(msg, sender)
@@ -296,19 +285,19 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         if msg.audio:
             result = await app.send_audio(target_chat_id, file, caption=caption, reply_to_message_id=topic_id)
             await result.copy(LOG_GROUP)
-            await edit.delete(2)
+            await edit.delete(1)
             return
         
         if msg.voice:
             result = await app.send_voice(target_chat_id, file, reply_to_message_id=topic_id)
             await result.copy(LOG_GROUP)
-            await edit.delete(2)
+            await edit.delete(1)
             return
 
         if msg.photo:
             result = await app.send_photo(target_chat_id, file, caption=caption, reply_to_message_id=topic_id)
             await result.copy(LOG_GROUP)
-            await edit.delete(2)
+            await edit.delete(1)
             return
 
         # Upload media
@@ -332,7 +321,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         if file and os.path.exists(file):
             os.remove(file)
         if edit:
-            await edit.delete(2)
+            await edit.delete(1)
         
 async def clone_message(app, msg, target_chat_id, topic_id, edit_id, log_group):
     edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
@@ -358,14 +347,14 @@ async def handle_sticker(app, msg, target_chat_id, topic_id, edit_id, log_group)
 
 async def get_media_filename(msg):
     if msg.document:
-        return msg.document.file_name or "Document_By_Real_Pirates.txt"
+        return msg.document.file_name or "Document_By_@Src_pro_bot.txt"
     if msg.video:
-        return msg.video.file_name or "Video_By_Real_Pirates.mp4"
+        return msg.video.file_name or "Video_By_@Src_pro_bot.mp4"
     if msg.audio:
-        return msg.audio.file_name or "Audio_By_Real_Pirates.mp3"
+        return msg.audio.file_name or "Audio_By_@Src_pro_bot.mp3"
     if msg.photo:
-        return "Image_By_Real_Pirates.jpg"
-    return "File_By_Real_Pirates.dat"
+        return "Image_By_@Src_pro_bot.jpg"
+    return "File_By_@Src_pro_bot.dat"
 
 
 
@@ -389,10 +378,10 @@ async def get_final_caption(msg, sender):
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
     # Replace @mentions with @Real_Pirates
-    final_caption = re.sub(r'@\w+', '@Real_Pirates', final_caption)
+    final_caption = re.sub(r'@\w+', '@II_LevelUP_II', final_caption)
 
     # Replace all links with your channel link
-    final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/Real_Pirates', final_caption)
+    final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/II_Way_to_Success_II', final_caption)
 
     # Perform additional replacements from user-defined rules
     replacements = load_replacement_words(sender)
@@ -509,34 +498,96 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
         if file and os.path.exists(file):
             os.remove(file)
 
-
 async def send_media_message(app, target_chat_id, msg, caption, topic_id):
     try:
+        file_name = None
+
+        # Try to get file name if available
+        if msg.document and msg.document.file_name:
+            file_name = msg.document.file_name
+        elif msg.video and msg.video.file_name:
+            file_name = msg.video.file_name
+
+        # If no caption, but file name exists, use it
+        if not caption and file_name:
+            caption = f"📁 **{file_name}**"
+        elif caption and file_name:
+            # Add blockquote formatting
+            caption = re.sub(
+                r'https?://t\.me/[^\s]+|https?://telegram\.me/[^\s]+',
+                'https://t.me/+7R-7p7jVoz9mM2M1',
+                caption
+            )
+            caption = "\n".join([f"> {line}" for line in caption.strip().splitlines()])
+            caption = f"📁 **{file_name}**\n\n{caption}"
+        elif caption:
+            caption = "\n".join([f"> {line}" for line in caption.strip().splitlines()])
+        else:
+            caption = "📥"
+
+        # Send the message with the right method
         if msg.video:
-            return await app.send_video(target_chat_id, msg.video.file_id, caption=caption, reply_to_message_id=topic_id)
+            return await app.send_video(
+                target_chat_id,
+                msg.video.file_id,
+                caption=caption,
+                reply_to_message_id=topic_id,
+                
+            )
+
         if msg.document:
-            return await app.send_document(target_chat_id, msg.document.file_id, caption=caption, reply_to_message_id=topic_id)
+            return await app.send_document(
+                target_chat_id,
+                msg.document.file_id,
+                caption=caption,
+                reply_to_message_id=topic_id,
+                
+            )
+
         if msg.photo:
-            return await app.send_photo(target_chat_id, msg.photo.file_id, caption=caption, reply_to_message_id=topic_id)
+            return await app.send_photo(
+                target_chat_id,
+                msg.photo.file_id,
+                caption=caption,
+                reply_to_message_id=topic_id,
+                
+            )
+
     except Exception as e:
         print(f"Error while sending media: {e}")
-    
-    # Fallback to copy_message in case of any exceptions
-    return await app.copy_message(target_chat_id, msg.chat.id, msg.id, reply_to_message_id=topic_id)
-    
+        return await app.send_message(target_chat_id, f"❌ Failed to send media.\n\nError: `{e}`")
+
 
 def format_caption(original_caption, sender, custom_caption):
     delete_words = load_delete_words(sender)
     replacements = load_replacement_words(sender)
 
-    # Remove and replace words in the caption
+    # ✅ Replace all @mentions with your bot's handle
+    original_caption = re.sub(r'@\w+', '@Src_pro_bot', original_caption)
+
+    # ✅ Replace all URLs with your custom invite link
+    original_caption = re.sub(
+        r'https?://t\.me/[^\s]+|https?://telegram\.me/[^\s]+',
+        'https://t.me/+7R-7p7jVoz9mM2M1',
+        original_caption
+    )
+    # ✅ Remove everything after 'Extracted By ...'
+    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Downloaded By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+
+
+
+    # 🔁 Delete unwanted words
     for word in delete_words:
         original_caption = original_caption.replace(word, '  ')
+
+    # 🔁 Replace custom words
     for word, replace_word in replacements.items():
         original_caption = original_caption.replace(word, replace_word)
 
-    # Append custom caption if available
-    return f"{original_caption}\n\n__**{custom_caption}**__" if custom_caption else original_caption
+    # 🔧 Return formatted caption
+    return f"{original_caption.strip()}\n\n__**{custom_caption}**__" if custom_caption else original_caption.strip()
 
     
 # ------------------------ Button Mode Editz FOR SETTINGS ----------------------------
@@ -619,14 +670,14 @@ async def send_settings_message(chat_id, user_id):
     
     # Define the rest of the buttons
     buttons = [
-        [Button.inline("Set Chat ID", b'setchat'), Button.inline("Set Rename Tag", b'setrename')],
-        [Button.inline("Caption", b'setcaption'), Button.inline("Replace Words", b'setreplacement')],
-        [Button.inline("Remove Words", b'delete'), Button.inline("Reset", b'reset')],
-        [Button.inline("Session Login", b'addsession'), Button.inline("Logout", b'logout')],
-        [Button.inline("Set Thumbnail", b'setthumb'), Button.inline("Remove Thumbnail", b'remthumb')],
-        [Button.inline("PDF Wtmrk", b'pdfwt'), Button.inline("Video Wtmrk", b'watermark')],
-        [Button.inline("Upload Method", b'uploadmethod')],  # Include the dynamic Fast DL button
-        [Button.url("Report Errors", "https://t.me/GeniusJunctionX")]
+        [Button.inline("🆔 Set Chat ID", b'setchat'), Button.inline("✏️ Set Rename Tag", b'setrename')],
+        [Button.inline("🔆 Caption", b'setcaption'), Button.inline("💠 Replace Words", b'setreplacement')],
+        [Button.inline("‼️ Remove Words", b'delete'), Button.inline("♻️ Reset", b'reset')],
+        [Button.inline("🎗️ Session Login", b'addsession'), Button.inline("⛔ Logout", b'logout')],
+        [Button.inline("🖼️ Set Thumbnail", b'setthumb'), Button.inline("🧲 Remove Thumbnail", b'remthumb')],
+        [Button.inline("🗂️ PDF Wtmrk", b'pdfwt'), Button.inline("🎥 Video Wtmrk", b'watermark')],
+        [Button.inline("📤 Upload Method", b'uploadmethod')],  # Include the dynamic Fast DL button
+        [Button.url("⚠️ Report Errors", "https://t.me/GeniusJunctionX")]
     ]
 
     await gf.send_file(
@@ -943,7 +994,7 @@ async def rename_file(file, sender):
     base_name = os.path.basename(base_name)  # Only filename without path
 
     # ✅ Replace @mention with @Real_Pirates
-    base_name = re.sub(r'@\w+', '@II_Way_to_Success_II', base_name)
+    base_name = re.sub(r'@\w+', '@Src_pro_bot', base_name)
 
     # 🔁 Apply custom word deletion
     for word in delete_words:
