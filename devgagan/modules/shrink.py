@@ -65,35 +65,39 @@ async def is_user_verified(user_id):
  
 @app.on_message(filters.command("start"))
 async def token_handler(client, message):
-    """Handle the /token command."""
+    """Handle the /start command."""
     join = await subscribe(client, message)
     if join == 1:
         return
+
     chat_id = "save_restricted_content_bots"
     msg = await app.get_messages(chat_id, 796)
     user_id = message.chat.id
+
     if len(message.command) <= 1:
         image_url = "https://freeimage.host/i/34sj06N"
+
+        # Correct buttons and markup
         join_button = InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")
-        premium = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")   
-        keyboard = InlineKeyboardMarkup([
-            [join_button],   
-            [premium]    
+        premium_button = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")
+        reply_markup = InlineKeyboardMarkup([
+            [join_button],
+            [premium_button]
         ])
-         
+
         await message.reply_photo(
             msg.photo.file_id,
             caption=(
                 "Hi 👋 Welcome, Wanna intro...?\n\n"
                 "✳️ I can save posts from channels or groups where forwarding is off.\n"
-                "✳️ Simply send the post link of a public channel.\n\nFor private channels, do /login. Send /help to know more."
+                "✳️ Simply send the post link of a public channel.\n\n"
+                "For private channels, do /login. Send /help to know more."
             ),
             reply_markup=reply_markup,
-            message_effect_id=5104841245755180586)  # 🔥
-        
+            message_effect_id=5104841245755180586
         )
-        return  
- 
+        return
+     
     param = message.command[1] if len(message.command) > 1 else None
     freecheck = await chk_user(message, user_id)
     if freecheck != 1:
