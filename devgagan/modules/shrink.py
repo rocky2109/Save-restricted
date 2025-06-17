@@ -64,34 +64,51 @@ async def is_user_verified(user_id):
  
 @app.on_message(filters.command("start"))
 async def token_handler(client, message):
-    """Handle the /start command."""
+    """Handle the /start command including referral & token logic."""
     join = await subscribe(client, message)
     if join == 1:
         return
-    
-    chat_id = "save_restricted_content_bots"
-    msg = await app.get_messages(chat_id, 796)
+
     user_id = message.chat.id
-    
-    if len(message.command) <= 1:
-        image_url = "https://freeimage.host/i/F35exwP"  # must end with .jpg/.png etc.
-        join_button = InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")
-        premium = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")   
+    args = message.text.split()
+    param = args[1] if len(args) > 1 else None
+
+    # 🧩 Handle referral links like /start ref_12345678
+    if param and param.startswith("ref_"):
+        try:
+            referrer_id = int(param.replace("ref_", ""))
+            user = await users.find_one({"_id": user_id})
+            if not user:
+                await users.insert_one({
+                    "_id": user_id,
+                    "points": 0,
+                    "referrals": [],
+                    "joined_from": referrer_id
+                })
+                if referrer_id != user_id:
+                    await users.update_one(
+                        {"_id": referrer_id},
+                        {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
+                    )
+                    await message.reply("🎉 You joined using a referral! Your friend earned 10 points.")
+        except:
+            pass  # invalid referrer
+
+    # 📸 Show welcome message
+    if not param or (param and param.startswith("ref_")):
+        image_url = "https://freeimage.host/i/F35exwP"
         keyboard = InlineKeyboardMarkup([
-            [join_button],   
-            [premium]    
+            [InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")],
+            [InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")]
         ])
-        
-        # Mention the user in the caption
-        user_mention = message.from_user.mention if message.from_user else "User"
-        
+        user_mention = message.from_user.mention or "User"
         await message.reply_photo(
             image_url,
             caption=(
                 f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
                 "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
                 "📌 **How to use me:**\n"
-                "➤ Just **send me the post link** if it's Public\n"       
+                "➤ Just **send me the post link** if it's Public\n"
                 "🔓 I'll fetch the media or message for you.\n\n"
                 "🔐 **Private channel post?**\n"
                 "➤ First do /login to save posts from Private Channel\n\n"
@@ -102,4 +119,23 @@ async def token_handler(client, message):
             message_effect_id=5104841245755180586
         )
         return
- 
+
+    # 🔐 Handle token verification
+    freecheck = await chk_user(message, user_id)
+    if freecheck != 1:
+        await message.reply("You are a premium user no need of token 😉")
+        return
+
+    if user_id in Param and Param[user_id] == param:
+        await token.insert_one({
+            "user_id": user_id,
+            "param": param,
+            "created_at": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + timedelta(hours=3),
+        })
+        del Param[user_id]
+        await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
+        return
+
+    await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
+
