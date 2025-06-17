@@ -1,6 +1,6 @@
 # ---------------------------------------------------
 # File Name: referral.py
-# Description: Handles referral tracking on start param + points & stats.
+# Description: Handles referral link sharing, stats, and buttons.
 # Author: Criminal Cool & ChatGPT
 # ---------------------------------------------------
 
@@ -15,56 +15,30 @@ tclient = AsyncIOMotorClient(MONGO_DB)
 tdb = tclient["telegram_bot"]
 users = tdb["users"]
 
-# 🎯 Background: Detect & register referrals ONLY if /start ref_12345678
-@app.on_message(filters.command("start"))
-async def referral_start_tracker(client, message):
-    args = message.text.split()
-    if len(args) < 2 or not args[1].startswith("ref_"):
-        return  # Let your main /start handler handle it
+# 🔗 Helper: Generate referral link
+async def get_referral_link(user_id, client):
+    bot_username = (await client.get_me()).username
+    return f"https://t.me/{bot_username}?start=ref_{user_id}"
 
-    user_id = message.chat.id
-    try:
-        referrer_id = int(args[1].replace("ref_", ""))
-    except ValueError:
-        return
-
-    # Only process if user is new
-    user = await users.find_one({"_id": user_id})
-    if not user:
-        await users.insert_one({
-            "_id": user_id,
-            "points": 0,
-            "referrals": [],
-            "joined_from": referrer_id
-        })
-
-        if referrer_id and referrer_id != user_id:
-            await users.update_one(
-                {"_id": referrer_id},
-                {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
-            )
-            await message.reply_text("🎉 You joined using a referral! Your friend earned 10 points!")
-
-# 🔗 Referral link command
+# 🎁 /refer - Get your personal referral link
 @app.on_message(filters.command("refer"))
 async def refer_command(client, message):
     user_id = message.chat.id
-    bot_username = (await client.get_me()).username
-    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    referral_link = await get_referral_link(user_id, client)
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Copy My Referral Link", url=ref_link)],
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Copy My Referral Link", url=referral_link)],
         [InlineKeyboardButton("👥 View My Stats", callback_data="view_referrals")]
     ])
 
     await message.reply_text(
         f"🎁 **Earn Rewards by Referring!**\n\n"
-        f"✅ Get **10 points** per new user!\n"
-        f"`{ref_link}`",
-        reply_markup=keyboard
+        f"✅ Get **10 points** for every new user who joins with your link!\n\n"
+        f"`{referral_link}`",
+        reply_markup=reply_markup
     )
 
-# 💰 Points viewer
+# 💰 /points - Check your referral stats
 @app.on_message(filters.command("points"))
 async def points_command(client, message):
     user_id = message.chat.id
@@ -72,35 +46,38 @@ async def points_command(client, message):
     if not user:
         return await message.reply("⚠️ You haven't referred anyone yet.")
 
-    total_refs = len(user.get("referrals", []))
     points = user.get("points", 0)
+    referrals = user.get("referrals", [])
 
     await message.reply_text(
         f"📊 **Referral Stats**\n\n"
-        f"👥 Referrals: `{total_refs}`\n"
+        f"👥 Referrals: `{len(referrals)}`\n"
         f"💰 Points: `{points}`"
     )
 
-# Button callback: get link
+# 📲 Callback: Get referral link (button)
 @app.on_callback_query(filters.regex("get_referral_link"))
 async def cb_ref_link(client, callback_query):
     user_id = callback_query.from_user.id
-    bot_username = (await client.get_me()).username
-    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    ref_link = await get_referral_link(user_id, client)
+
     await callback_query.message.edit_text(
-        f"🔗 **Your Referral Link**\n`{ref_link}`\nShare & earn 10 points!"
+        f"🔗 **Your Referral Link**\n\n"
+        f"`{ref_link}`\n\n"
+        f"📢 Share this and earn **10 points** per verified join!"
     )
 
-# Button callback: view stats
+# 📊 Callback: View stats (button)
 @app.on_callback_query(filters.regex("view_referrals"))
-async def cb_view_referrals(client, callback_query):
+async def cb_ref_stats(client, callback_query):
     user_id = callback_query.from_user.id
     user = await users.find_one({"_id": user_id})
     points = user.get("points", 0)
-    total_refs = len(user.get("referrals", []))
+    referrals = user.get("referrals", [])
 
     await callback_query.message.edit_text(
         f"💼 **Referral Stats**\n\n"
-        f"👥 Total Referred: `{total_refs}`\n"
-        f"💰 Total Points: `{points}`"
+        f"👥 Total Referred: `{len(referrals)}`\n"
+        f"💰 Total Points: `{points}`\n\n"
+        f"🚀 Keep sharing to unlock more features!"
     )
