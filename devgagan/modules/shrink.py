@@ -72,6 +72,7 @@ async def token_handler(client, message):
     user_id = message.chat.id
     args = message.text.split()
     param = args[1] if len(args) > 1 else None
+    joined_from_referral = False
 
     # 🧩 Handle referral links like /start ref_12345678
     if param and param.startswith("ref_"):
@@ -90,11 +91,11 @@ async def token_handler(client, message):
                         {"_id": referrer_id},
                         {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
                     )
-                    await message.reply("🎉 You joined using a referral! Your friend earned 10 points.")
+                    joined_from_referral = True
         except:
             pass  # invalid referrer
 
-    # 📸 Show welcome message
+    # 📸 Show welcome message (with referral bonus if applicable)
     if not param or (param and param.startswith("ref_")):
         image_url = "https://freeimage.host/i/F35exwP"
         keyboard = InlineKeyboardMarkup([
@@ -102,9 +103,16 @@ async def token_handler(client, message):
             [InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")]
         ])
         user_mention = message.from_user.mention or "User"
+
+        referral_notice = (
+            "🎉 You joined using a referral! Your friend earned 10 points.\n\n"
+            if joined_from_referral else ""
+        )
+
         await message.reply_photo(
             image_url,
             caption=(
+                f"{referral_notice}"
                 f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
                 "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
                 "📌 **How to use me:**\n"
@@ -115,8 +123,7 @@ async def token_handler(client, message):
                 "💡 Need help? Send /guide for more details also use /help\n\n"
                 "⚡ Bot Made by CHOSEN ONE ⚝"
             ),
-            reply_markup=keyboard,
-            message_effect_id=5104841245755180586
+            reply_markup=keyboard
         )
         return
 
@@ -138,4 +145,3 @@ async def token_handler(client, message):
         return
 
     await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
-
