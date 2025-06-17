@@ -62,25 +62,22 @@ def time_formatter():
     else:
         return "0 s"
 
-SCHEDULE_TIME = datetime(2025, 6, 1, 11, 15)  # year, month, day, hour, minute
-
-# 🎯 Function to send bot share message
-async def send_share_button_to_owner():
-    now = datetime.now()
-    wait_seconds = (SCHEDULE_TIME - now).total_seconds()
-    if wait_seconds > 0:
-        await asyncio.sleep(wait_seconds)
-
-    bot = await app.get_me()
+@app.on_message(filters.command("sharelink"))
+async def sharelink_handler(client, message: Message):
+    user = message.from_user
+    bot = await client.get_me()
     bot_username = bot.username
 
+    share_url = f"https://t.me/{bot_username}?start=True"
+
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🤖 Share This Bot", switch_inline_query="")
+        InlineKeyboardButton("🤖 Share This Bot", url=share_url)
     ]])
 
-    await app.send_message(
-        OWNER_ID,
-        f"🚀 **Ready to share?**\n\nTap the button below to share @{bot_username} instantly!",
+    await message.reply_text(
+        f"🚀 **Want to share this bot?**\n\n"
+        f"Just tap the button below and forward the link to your friends!\n\n"
+        f"`{share_url}`",
         reply_markup=reply_markup
     )
 
