@@ -104,6 +104,11 @@ async def token_handler(client, message):
         return
  
     param = message.command[1] if len(message.command) > 1 else None
+
+    # ⛔️ Ignore referral link here
+    if param and param.startswith("ref_"):
+        return  # handled in referral.py already
+
     freecheck = await chk_user(message, user_id)
     if freecheck != 1:
         await message.reply("You are a premium user no need of token 😉")
