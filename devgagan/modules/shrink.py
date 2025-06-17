@@ -74,11 +74,19 @@ async def token_handler(client, message):
     param = args[1] if len(args) > 1 else None
     joined_from_referral = False
 
+    # 📌 MongoDB setup
+    from motor.motor_asyncio import AsyncIOMotorClient
+    from config import MONGO_DB
+    tclient = AsyncIOMotorClient(MONGO_DB)
+    users = tclient["telegram_bot"]["users"]
+
     # 🧩 Handle referral links like /start ref_12345678
     if param and param.startswith("ref_"):
         try:
             referrer_id = int(param.replace("ref_", ""))
             user = await users.find_one({"_id": user_id})
+
+            # ✅ If new user: track referral
             if not user:
                 await users.insert_one({
                     "_id": user_id,
@@ -86,16 +94,26 @@ async def token_handler(client, message):
                     "referrals": [],
                     "joined_from": referrer_id
                 })
+                joined_from_referral = True
+
                 if referrer_id != user_id:
                     await users.update_one(
                         {"_id": referrer_id},
                         {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
                     )
-                    joined_from_referral = True
-        except:
-            pass  # invalid referrer
 
-    # 📸 Show welcome message (with referral bonus if applicable)
+            # ✅ If existing user without referral info
+            elif not user.get("joined_from") and referrer_id != user_id:
+                joined_from_referral = True
+                await users.update_one({"_id": user_id}, {"$set": {"joined_from": referrer_id}})
+                await users.update_one(
+                    {"_id": referrer_id},
+                    {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
+                )
+        except Exception as e:
+            print(f"Referral processing error: {e}")
+
+    # 📸 Show welcome message
     if not param or (param and param.startswith("ref_")):
         image_url = "https://freeimage.host/i/F35exwP"
         keyboard = InlineKeyboardMarkup([
@@ -104,6 +122,7 @@ async def token_handler(client, message):
         ])
         user_mention = message.from_user.mention or "User"
 
+        # ✅ Add referral notice if joined via referral
         referral_notice = (
             "🎉 You joined using a referral! Your friend earned 10 points.\n\n"
             if joined_from_referral else ""
