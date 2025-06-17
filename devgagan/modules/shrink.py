@@ -103,30 +103,3 @@ async def token_handler(client, message):
         )
         return
  
-    param = message.command[1] if len(message.command) > 1 else None
-
-    # ⛔️ Ignore referral link here
-    if param and param.startswith("ref_"):
-        return  # handled in referral.py already
-
-    freecheck = await chk_user(message, user_id)
-    if freecheck != 1:
-        await message.reply("You are a premium user no need of token 😉")
-        return
- 
-     
-    if param:
-        if user_id in Param and Param[user_id] == param:
-             
-            await token.insert_one({
-                "user_id": user_id,
-                "param": param,
-                "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(hours=3),
-            })
-            del Param[user_id]   
-            await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
-            return
-        else:
-            await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
-            return
