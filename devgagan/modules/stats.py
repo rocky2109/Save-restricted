@@ -90,22 +90,17 @@ async def sharelink_handler(client, message: Message):
     bot = await client.get_me()
     bot_username = bot.username
 
-    share_url = f"https://t.me/{bot_username}?start=True"
-    reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🤖 Share This Bot", url=share_url)
-    ]])
+    bot_link = f"https://t.me/{bot_username}?start=True"
+    share_link = f"https://t.me/share/url?url={bot_link}&text=🚀%20Check%20out%20this%20awesome%20bot%20to%20unlock%20restricted%20Telegram%20media!%20Try%20now%20👉"
+
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🤖 Open Bot", url=bot_link)],
+        [InlineKeyboardButton("📤 Share with Friends", url=share_link)]
+    ])
 
     await message.reply_text(
-        f"🚀 **Want to share this bot?**\n\n"
-        f"Just tap the button below and forward the link to your friends!\n\n"
-        f"`{share_url}`",
+        f"✨ **Spread the Magic!**\n\n"
+        f"Help others discover this bot that can save **restricted channel media**, even if forwarding is off! 🔒\n\n"
+        f"Click a button below 👇 to open or share this bot with your friends!",
         reply_markup=reply_markup
     )
-
-
-# ⏰ Placeholder for future scheduled send (if implemented)
-async def send_share_button_to_owner():
-    # Set this if you want to schedule a share button (optional)
-    pass
-
-
