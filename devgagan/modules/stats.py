@@ -22,7 +22,10 @@ from pyrogram import filters
 from config import OWNER_ID
 from devgagan.core.mongo.users_db import get_users, add_user, get_user
 from devgagan.core.mongo.plans_db import premium_users
-
+import asyncio
+from datetime import datetime, timedelta
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ChatType
 
 
 start_time = time.time()
@@ -59,6 +62,33 @@ def time_formatter():
     else:
         return "0 s"
 
+SCHEDULE_TIME = datetime(2025, 6, 1, 11, 15)  # year, month, day, hour, minute
+
+# 🎯 Function to send bot share message
+async def send_share_button_to_owner():
+    now = datetime.now()
+    wait_seconds = (SCHEDULE_TIME - now).total_seconds()
+    if wait_seconds > 0:
+        await asyncio.sleep(wait_seconds)
+
+    bot = await app.get_me()
+    bot_username = bot.username
+
+    reply_markup = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🤖 Share This Bot", switch_inline_query="")
+    ]])
+
+    await app.send_message(
+        OWNER_ID,
+        f"🚀 **Ready to share?**\n\nTap the button below to share @{bot_username} instantly!",
+        reply_markup=reply_markup
+    )
+
+# 📩 Command to start scheduling manually
+@app.on_message(filters.command("schedule_share") & filters.user(OWNER_ID))
+async def schedule_share_command(client, message):
+    asyncio.create_task(send_share_button_to_owner())
+    await message.reply("✅ Share button will be sent to you at the scheduled time.")
 
 @app.on_message(filters.command("stats") & filters.user(OWNER_ID))
 async def stats(client, message):
