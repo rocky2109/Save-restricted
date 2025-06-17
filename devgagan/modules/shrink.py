@@ -28,8 +28,6 @@ from config import MONGO_DB, WEBSITE_URL, AD_API, LOG_GROUP
 tclient = AsyncIOMotorClient(MONGO_DB)
 tdb = tclient["telegram_bot"]
 token = tdb["tokens"]
-users = tdb["users"]  # 👈 This is required for referral system
-
  
  
 async def create_ttl_index():
@@ -66,90 +64,68 @@ async def is_user_verified(user_id):
  
 @app.on_message(filters.command("start"))
 async def token_handler(client, message):
-    """Handle the /start command and referral tracking."""
+    """Handle the /start command."""
     join = await subscribe(client, message)
     if join == 1:
         return
-
+    
     chat_id = "save_restricted_content_bots"
     msg = await app.get_messages(chat_id, 796)
     user_id = message.chat.id
-
-    args = message.text.split()
-    referrer_id = None
-
-    # 🔗 Check if user joined using a referral link
-    if len(args) > 1 and args[1].startswith("ref_"):
-        try:
-            referrer_id = int(args[1].replace("ref_", ""))
-        except:
-            referrer_id = None
-
-    # 👤 Check if new user
-    user = await users.find_one({"_id": user_id})
-    if not user:
-        user_data = {
-            "_id": user_id,
-            "points": 0,
-            "referrals": [],
-            "joined_from": referrer_id
-        }
-        await users.insert_one(user_data)
-
-        # 💰 Reward referrer
-        if referrer_id and referrer_id != user_id:
-            await users.update_one(
-                {"_id": referrer_id},
-                {
-                    "$inc": {"points": 10},
-                    "$addToSet": {"referrals": user_id}
-                }
-            )
-
-    # 📩 Send intro message
-    user_mention = message.from_user.mention if message.from_user else "User"
-    reply_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")],
-        [InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")]
-    ])
-
-    await message.reply_photo(
-        "https://freeimage.host/i/F35exwP",
-        caption=(
-            f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
-            "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
-            "📌 **How to use me:**\n"
-            "➤ Just **send me the post link** if it's Public\n"
-            "🔓 I'll fetch the media or message for you.\n\n"
-            "🔐 **Private channel post?**\n"
-            "➤ First do /login to save posts from Private Channel\n\n"
-            "🎯 Use /refer to invite & earn points\n"
-            "💰 Use /points to check your earnings\n"
-            "⚡ Made by CHOSEN ONE ⚝"
-        ),
-        reply_markup=reply_markup,
-        message_effect_id=5104841245755180586
-    )
-
-@app.on_message(filters.command("refer"))
-async def refer_command(client, message):
-    user_id = message.chat.id
-    bot_username = (await client.get_me()).username
-    referral_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-    await message.reply(f"🔗 Your referral link:\n\n`{referral_link}`\n\nInvite friends and earn 10 points per join!")
-
-@app.on_message(filters.command("points"))
-async def points_command(client, message):
-    user_id = message.chat.id
-    user = await users.find_one({"_id": user_id})
-    if not user:
-        return await message.reply("ℹ️ You have no referral data yet.")
-
-    points = user.get("points", 0)
-    total_refs = len(user.get("referrals", []))
-    await message.reply(f"💰 You have `{points}` points.\n👥 Referrals: `{total_refs}` users.")
-
-
+    
+    if len(message.command) <= 1:
+        image_url = "https://freeimage.host/i/F35exwP"  # must end with .jpg/.png etc.
+        join_button = InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")
+        premium = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")   
+        keyboard = InlineKeyboardMarkup([
+            [join_button],   
+            [premium]    
+        ])
+        
+        # Mention the user in the caption
+        user_mention = message.from_user.mention if message.from_user else "User"
+        
+        await message.reply_photo(
+            image_url,
+            caption=(
+                f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
+                "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
+                "📌 **How to use me:**\n"
+                "➤ Just **send me the post link** if it's Public\n"       
+                "🔓 I'll fetch the media or message for you.\n\n"
+                "🔐 **Private channel post?**\n"
+                "➤ First do /login to save posts from Private Channel\n\n"
+                "💡 Need help? Send /guide for more details also use /help\n\n"
+                "⚡ Bot Made by CHOSEN ONE ⚝"
+            ),
+            reply_markup=reply_markup,
+            message_effect_id=5104841245755180586
+        )
+        return
+ 
+    param = message.command[1] if len(message.command) > 1 else None
+    freecheck = await chk_user(message, user_id)
+    if freecheck != 1:
+        await message.reply("You are a premium user no need of token 😉")
+        return
+ 
+     
+    if param:
+        if user_id in Param and Param[user_id] == param:
+             
+            await token.insert_one({
+                "user_id": user_id,
+                "param": param,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(hours=3),
+            })
+            del Param[user_id]   
+            await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
+            return
+        else:
+            await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
+            return
+ 
 @app.on_message(filters.command("token"))
 async def smart_handler(client, message):
     user_id = message.chat.id
