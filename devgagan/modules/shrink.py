@@ -125,34 +125,3 @@ async def token_handler(client, message):
         else:
             await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
             return
- 
-@app.on_message(filters.command("token"))
-async def smart_handler(client, message):
-    user_id = message.chat.id
-     
-    freecheck = await chk_user(message, user_id)
-    if freecheck != 1:
-        await message.reply("You are a premium user no need of token 😉")
-        return
-    if await is_user_verified(user_id):
-        await message.reply("✅ Your free session is already active enjoy!")
-    else:
-         
-        param = await generate_random_param()
-        Param[user_id] = param   
- 
-         
-        deep_link = f"https://t.me/{client.me.username}?start={param}"
- 
-         
-        shortened_url = await get_shortened_url(deep_link)
-        if not shortened_url:
-            await message.reply("❌ Failed to generate the token link. Please try again.")
-            return
- 
-         
-        button = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Verify the token now...", url=shortened_url)]]
-        )
-        await message.reply("Click the button below to verify your free access token: \n\n> What will you get ? \n1. No time bound upto 3 hours \n2. Batch command limit will be FreeLimit + 20 \n3. All functions unlocked", reply_markup=button)
- 
