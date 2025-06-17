@@ -73,27 +73,28 @@ async def token_handler(client, message):
     user_id = message.chat.id
     args = message.text.split()
     param = args[1] if len(args) > 1 else None
-    joined_from_referral = False
 
-    # MongoDB setup for referral tracking
+    # Always show referral notice if joined via /start ref_...
+    joined_from_referral = param and param.startswith("ref_")
+
+    # Setup MongoDB
     tclient = AsyncIOMotorClient(MONGO_DB)
     users = tclient["telegram_bot"]["users"]
 
-    # 🧩 Handle referral links like /start ref_12345678
-    if param and param.startswith("ref_"):
+    # 🧩 Handle referral logic (count only once per user)
+    if joined_from_referral:
         try:
             referrer_id = int(param.replace("ref_", ""))
             user = await users.find_one({"_id": user_id})
 
             if not user:
+                # First-time user
                 await users.insert_one({
                     "_id": user_id,
                     "points": 0,
                     "referrals": [],
                     "joined_from": referrer_id
                 })
-                joined_from_referral = True
-
                 if referrer_id != user_id:
                     await users.update_one(
                         {"_id": referrer_id},
@@ -101,7 +102,7 @@ async def token_handler(client, message):
                     )
 
             elif not user.get("joined_from") and referrer_id != user_id:
-                joined_from_referral = True
+                # Existing user without referral info
                 await users.update_one(
                     {"_id": user_id},
                     {"$set": {"joined_from": referrer_id}}
@@ -111,10 +112,10 @@ async def token_handler(client, message):
                     {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
                 )
         except Exception as e:
-            print(f"Referral processing error: {e}")
+            print(f"[Referral Error] {e}")
 
-    # 📸 Show welcome message (with referral bonus if applicable)
-    if not param or (param and param.startswith("ref_")):
+    # 📸 Welcome message
+    if not param or joined_from_referral:
         image_url = "https://freeimage.host/i/F35exwP"
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")],
@@ -145,7 +146,7 @@ async def token_handler(client, message):
         )
         return
 
-    # 🔐 Handle token verification
+    # 🔐 Token-based access logic
     freecheck = await chk_user(message, user_id)
     if freecheck != 1:
         await message.reply("You are a premium user no need of token 😉")
