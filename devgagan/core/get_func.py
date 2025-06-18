@@ -756,10 +756,21 @@ async def callback_query_handler(event):
 
     elif data == b'remthumb':
         try:
-            os.remove(f'{user_id}.jpg')
-            await event.respond("🧹 Thumbnail removed successfully!")
-        except FileNotFoundError:
-            await event.respond("❌ No thumbnail found to remove.")
+            thumb_path = f"thumbnails/{user_id}.jpg"
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
+
+            # Optional: remove from DB too
+                await collection.update_one(
+                    {"user_id": user_id},
+                    {"$unset": {"thumbnail": ""}}
+                )
+
+                await event.respond("🧹 Thumbnail removed successfully!")
+            else:
+                await event.respond("❌ No thumbnail found to remove.")
+        except Exception as e:
+            await event.respond(f"⚠️ Error removing thumbnail: {e}")
 
     elif data == b'uploadmethod':
         user_data = collection.find_one({'user_id': user_id})
