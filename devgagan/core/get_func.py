@@ -755,12 +755,63 @@ async def callback_query_handler(event):
         await event.respond("🧹 Delete words cleared successfully.")
 
     elif data == b'remthumb':
-        await odb.remove_data(user_id, "thumbnail")
-        await event.respond("🧹 Thumbnail removed successfully.")
+        try:
+            os.remove(f'{user_id}.jpg')
+            await event.respond("🧹 Thumbnail removed successfully!")
+        except FileNotFoundError:
+            await event.respond("❌ No thumbnail found to remove.")
 
-    elif data == b'resetall':
-        await odb.reset_all(user_id)
-        await event.respond("🔄 All settings have been reset.")
+    elif data == b'uploadmethod':
+        user_data = collection.find_one({'user_id': user_id})
+        current_method = user_data.get('upload_method', 'Pyrogram') if user_data else 'Pyrogram'
+        pyrogram_check = " ✅" if current_method == "Pyrogram" else ""
+        telethon_check = " ✅" if current_method == "Telethon" else ""
+
+        buttons = [
+            [Button.inline(f"Pyrogram v2{pyrogram_check}", b'pyrogram')],
+            [Button.inline(f"II_LevelUP_II v1 ⚡{telethon_check}", b'telethon')]
+        ]
+        await event.edit(
+            "Choose your preferred upload method:\n\n"
+            "__**Note:** **II_LevelUP_II ⚡**, built on Telethon(base), by @II_LevelUP_II still in beta.__",
+            buttons=buttons
+        )
+
+    elif data == b'pyrogram':
+        save_user_upload_method(user_id, "Pyrogram")
+        await event.edit("✅ Upload method set to **Pyrogram**.")
+
+    elif data == b'telethon':
+        save_user_upload_method(user_id, "Telethon")
+        await event.edit("✅ Upload method set to **II_LevelUP_II ⚡**.\n\nThanks for choosing this library!")
+
+    elif data == b'reset':
+        try:
+            collection.update_one({"_id": user_id}, {
+                "$unset": {
+                    "delete_words": "",
+                    "replacement_words": "",
+                    "watermark_text": "",
+                    "duration_limit": ""
+                }
+            })
+            collection.update_one({"user_id": user_id}, {
+                "$unset": {
+                    "delete_words": "",
+                    "replacement_words": "",
+                    "watermark_text": "",
+                    "duration_limit": ""
+                }
+            })
+            user_chat_ids.pop(user_id, None)
+            user_rename_preferences.pop(str(user_id), None)
+            user_caption_preferences.pop(str(user_id), None)
+            thumbnail_path = f"{user_id}.jpg"
+            if os.path.exists(thumbnail_path):
+                os.remove(thumbnail_path)
+            await event.respond("🔄 Reset successfully. To logout click /logout.")
+        except Exception as e:
+            await event.respond(f"⚠️ Error during reset: `{e}`")
 
     elif data.decode().startswith("toggle_"):
         key = data.decode().replace("toggle_", "")
@@ -772,67 +823,6 @@ async def callback_query_handler(event):
     else:
         await event.answer("❓ Unknown action.")
 
-    elif event.data == b'uploadmethod':
-        # Retrieve the user's current upload method (default to Pyrogram)
-        user_data = collection.find_one({'user_id': user_id})
-        current_method = user_data.get('upload_method', 'Pyrogram') if user_data else 'Pyrogram'
-        pyrogram_check = " ✅" if current_method == "Pyrogram" else ""
-        telethon_check = " ✅" if current_method == "Telethon" else ""
-
-        # Display the buttons for selecting the upload method
-        buttons = [
-            [Button.inline(f"Pyrogram v2{pyrogram_check}", b'pyrogram')],
-            [Button.inline(f"II_LevelUP_II v1 ⚡{telethon_check}", b'telethon')]
-        ]
-        await event.edit("Choose your preferred upload method:\n\n__**Note:** **II_LevelUP_II ⚡**, built on Telethon(base), by @II_LevelUP_II still in beta.__", buttons=buttons)
-
-    elif event.data == b'pyrogram':
-        save_user_upload_method(user_id, "Pyrogram")
-        await event.edit("Upload method set to **Pyrogram** ✅")
-
-    elif event.data == b'telethon':
-        save_user_upload_method(user_id, "Telethon")
-        await event.edit("Upload method set to **II_LevelUP_II ⚡\n\nThanks for choosing this library as it will help me to analyze the error raise issues on github.** ✅")        
-        
-    elif event.data == b'reset':
-        try:
-            user_id_str = str(user_id)
-            
-            collection.update_one(
-                {"_id": user_id},
-                {"$unset": {
-                    "delete_words": "",
-                    "replacement_words": "",
-                    "watermark_text": "",
-                    "duration_limit": ""
-                }}
-            )
-            
-            collection.update_one(
-                {"user_id": user_id},
-                {"$unset": {
-                    "delete_words": "",
-                    "replacement_words": "",
-                    "watermark_text": "",
-                    "duration_limit": ""
-                }}
-            )            
-            user_chat_ids.pop(user_id, None)
-            user_rename_preferences.pop(user_id_str, None)
-            user_caption_preferences.pop(user_id_str, None)
-            thumbnail_path = f"{user_id}.jpg"
-            if os.path.exists(thumbnail_path):
-                os.remove(thumbnail_path)
-            await event.respond("✅ Reset successfully, to logout click /logout")
-        except Exception as e:
-            await event.respond(f"Error clearing delete list: {e}")
-    
-    elif event.data == b'remthumb':
-        try:
-            os.remove(f'{user_id}.jpg')
-            await event.respond('Thumbnail removed successfully!')
-        except FileNotFoundError:
-            await event.respond("No thumbnail found to remove.")
     
 
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
