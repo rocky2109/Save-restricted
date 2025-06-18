@@ -61,77 +61,33 @@ async def is_user_verified(user_id):
     session = await token.find_one({"user_id": user_id})
     return session is not None
  
-
-
+ 
 @app.on_message(filters.command("start"))
 async def token_handler(client, message):
-    """Handle the /start command including referral & token logic."""
+    """Handle the /start command."""
     join = await subscribe(client, message)
     if join == 1:
         return
 
+    chat_id = "save_restricted_content_bots"
+    msg = await app.get_messages(chat_id, 796)
     user_id = message.chat.id
-    args = message.text.split()
-    param = args[1] if len(args) > 1 else None
 
-    # Always show referral notice if joined via /start ref_...
-    joined_from_referral = param and param.startswith("ref_")
-
-    # Setup MongoDB
-    tclient = AsyncIOMotorClient(MONGO_DB)
-    users = tclient["telegram_bot"]["users"]
-
-    # 🧩 Handle referral logic (count only once per user)
-    if joined_from_referral:
-        try:
-            referrer_id = int(param.replace("ref_", ""))
-            user = await users.find_one({"_id": user_id})
-
-            if not user:
-                # First-time user
-                await users.insert_one({
-                    "_id": user_id,
-                    "points": 0,
-                    "referrals": [],
-                    "joined_from": referrer_id
-                })
-                if referrer_id != user_id:
-                    await users.update_one(
-                        {"_id": referrer_id},
-                        {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
-                    )
-
-            elif not user.get("joined_from") and referrer_id != user_id:
-                # Existing user without referral info
-                await users.update_one(
-                    {"_id": user_id},
-                    {"$set": {"joined_from": referrer_id}}
-                )
-                await users.update_one(
-                    {"_id": referrer_id},
-                    {"$inc": {"points": 10}, "$addToSet": {"referrals": user_id}}
-                )
-        except Exception as e:
-            print(f"[Referral Error] {e}")
-
-    # 📸 Welcome message
-    if not param or joined_from_referral:
-        image_url = "https://freeimage.host/i/F35exwP"
+    if len(message.command) <= 1:
+        image_url = "https://freeimage.host/i/F35exwP"  # must end with .jpg/.png etc.
+        join_button = InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")
+        premium = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")],
-            [InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")]
+            [join_button],
+            [premium]
         ])
-        user_mention = message.from_user.mention or "User"
 
-        referral_notice = (
-            "🎉 You joined using a referral! Your friend earned 10 points.\n\n"
-            if joined_from_referral else ""
-        )
+        # Mention the user in the caption
+        user_mention = message.from_user.mention if message.from_user else "User"
 
         await message.reply_photo(
-            image_url,
+            image_url,            
             caption=(
-                f"{referral_notice}"
                 f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
                 "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
                 "📌 **How to use me:**\n"
@@ -142,25 +98,31 @@ async def token_handler(client, message):
                 "💡 Need help? Send /guide for more details also use /help\n\n"
                 "⚡ Bot Made by CHOSEN ONE ⚝"
             ),
-            reply_markup=keyboard
+            reply_markup=keyboard,  # ✅ fixed here
+            message_effect_id=5104841245755180586
         )
         return
-
-    # 🔐 Token-based access logic
+ 
+    param = message.command[1] if len(message.command) > 1 else None
     freecheck = await chk_user(message, user_id)
     if freecheck != 1:
         await message.reply("You are a premium user no need of token 😉")
         return
-
-    if user_id in Param and Param[user_id] == param:
-        await token.insert_one({
-            "user_id": user_id,
-            "param": param,
-            "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(hours=3),
-        })
-        del Param[user_id]
-        await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
-        return
-
-    await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
+ 
+     
+    if param:
+        if user_id in Param and Param[user_id] == param:
+             
+            await token.insert_one({
+                "user_id": user_id,
+                "param": param,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(hours=3),
+            })
+            del Param[user_id]   
+            await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
+            return
+        else:
+            await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
+            return
+ 
