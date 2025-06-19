@@ -13,137 +13,41 @@
 # ---------------------------------------------------
 
 import math
-import time, re
-from pyrogram import enums, filters
-from config import CHANNEL_ID, OWNER_ID, ADMINS
+import time , re
+from pyrogram import enums
+from config import CHANNEL_ID, OWNER_ID 
 from devgagan.core.mongo.plans_db import premium_users
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import cv2
-from pyrogram.errors import (FloodWait, InviteHashInvalid, InviteHashExpired, 
-                           UserAlreadyParticipant, UserNotParticipant, ChatAdminRequired)
+from pyrogram.errors import FloodWait, InviteHashInvalid, InviteHashExpired, UserAlreadyParticipant, UserNotParticipant
 from datetime import datetime as dt
 import asyncio, subprocess, re, os, time
-import logging
-
-# Global variable for channel ID (can be replaced with DB later)
-CURRENT_CHANNEL_ID = CHANNEL_ID
-
 async def chk_user(message, user_id):
     user = await premium_users()
     if user_id in user or user_id in OWNER_ID:
         return 0
     else:
         return 1
-
-async def gen_link(app, chat_id):
-    try:
-        link = await app.export_chat_invite_link(chat_id)
-        return link
-    except Exception as e:
-        logging.error(f"Error generating link: {str(e)}")
-        return None
+async def gen_link(app,chat_id):
+   link = await app.export_chat_invite_link(chat_id)
+   return link
 
 async def subscribe(app, message):
-    if not CURRENT_CHANNEL_ID:
-        await message.reply_text("❌ Bot configuration error. Please contact admin.")
-        return 0
-
-    try:
-        # Generate invite link
-        invite_link = await gen_link(app, CURRENT_CHANNEL_ID)
-        if not invite_link:
-            await message.reply_text("❌ Couldn't generate invite link. Try again later.")
-            return 0
-
-        # Check user status
-        try:
-            user = await app.get_chat_member(CURRENT_CHANNEL_ID, message.from_user.id)
-            
-            if user.status == "kicked":
-                await message.reply_photo(
-                    photo="https://postimg.cc/K133r7Vf",
-                    caption="🚫 <b>You are banned from our channel!</b>\nContact @CHOSEN_ONEx_bot for support",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("Contact Admin", url="https://t.me/CHOSEN_ONEx_bot")]
-                    ])
-                )
-                return 1
-                
-            return 0  # User is subscribed
-            
-        except UserNotParticipant:
-            await message.reply_photo(
-                photo="https://postimg.cc/K133r7Vf",
-                caption="🔒 <b>Join our channel to use this bot!</b>\n\nAfter joining, click /start again",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✨ Join Channel ✨", url=invite_link)],
-                    [InlineKeyboardButton("✅ I've Joined", callback_data="joined_check")]
-                ])
-            )
+   update_channel = CHANNEL_ID
+   url = await gen_link(app, update_channel)
+   if update_channel:
+      try:
+         user = await app.get_chat_member(update_channel, message.from_user.id)
+         if user.status == "kicked":
+            await message.reply_text("You are Banned. Contact -- @CHOSEN_ONEx_bot")
             return 1
-            
-    except ChatAdminRequired:
-        await message.reply_text("⚠️ Bot needs admin rights in channel to verify subscriptions")
-        return 0
-        
-    except Exception as e:
-        logging.error(f"Subscription check failed: {str(e)}")
-        await message.reply_text("⚠️ Error verifying subscription. Please try again later.")
-        return 0
-
-@app.on_message(filters.command("setchannel") & filters.private)
-async def set_channel_id(app: Client, message: Message):
-    """Change subscription channel ID (Admin only)"""
-    
-    # Verify admin status
-    if message.from_user.id not in ADMINS and message.from_user.id not in OWNER_ID:
-        await message.reply("❌ Admin access required!")
-        return
-    
-    if len(message.command) < 2:
-        await message.reply("Usage: /setchannel <channel_id>\n\nExample:\n/setchannel -1001234567890\n/setchannel @channel_username")
-        return
-    
-    try:
-        new_id = message.text.split()[1].strip()
-        
-        # Remove @ if username provided
-        if new_id.startswith('@'):
-            new_id = new_id[1:]
-        # Extract from invite link
-        elif 't.me/' in new_id:
-            new_id = new_id.split('t.me/')[-1].split('/')[-1]
-        
-        # Verify the bot is admin in new channel
-        try:
-            chat = await app.get_chat(new_id)
-            if chat.type not in (enums.ChatType.CHANNEL, enums.ChatType.SUPERGROUP):
-                await message.reply("⚠️ Only channels and supergroups are supported!")
-                return
-                
-            await app.get_chat_member(chat.id, "me")
-        except ChatAdminRequired:
-            await message.reply("⚠️ Make me admin in that channel first!")
-            return
-        except Exception as e:
-            await message.reply(f"❌ Invalid channel: {str(e)}")
-            return
-        
-        # Update global variable
-        global CURRENT_CHANNEL_ID
-        CURRENT_CHANNEL_ID = chat.id
-        
-        await message.reply(f"""
-✅ Subscription channel updated!
-
-**New Channel:** {chat.title or 'N/A'}
-**ID:** `{chat.id}`
-**Username:** @{chat.username or 'N/A'}
-""")
-        
-    except Exception as e:
-        await message.reply(f"❌ Error: {str(e)}")
-        
+      except UserNotParticipant:
+        caption = f"<b>Join our channel to use the bot 😉\nAfter Joining/start Again</b>"
+        await message.reply_photo(photo="https://postimg.cc/K133r7Vf",caption=caption, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Join Now...", url=f"{url}")]]))
+        return 1
+      except Exception:
+         await message.reply_text("Something Went Wrong. Contact us @CHOSEN_ONEx_bot ...")
+         return 1
 async def get_seconds(time_string):
     def extract_value_and_unit(ts):
         value = ""
@@ -177,12 +81,14 @@ async def get_seconds(time_string):
         return value * 86400 * 365
     else:
         return 0
-PROGRESS_BAR = """\n
-│ **__Completed:__** {1}/{2}
-│ **__Bytes:__** {0}%
-│ **__Speed:__** {3}/s
-│ **__ETA:__** {4}
-╰─────────────────────╯
+PROGRESS_BAR = """
+   ┉━┉━┉━┉┉━┉━┉━┉┉━┉━
+*┋ **__Total Size:__** {2}
+*┋ **__Completed:__** {1}
+*┋ **__Progress:__** {0}%
+*┋ **__Speed:__** {3}/s
+*┋ **__EST:__** {4}\n
+ ╚═══━━━──⚝──━━━═══╝
 """
 async def progress_bar(current, total, ud_type, message, start):
 
@@ -200,8 +106,8 @@ async def progress_bar(current, total, ud_type, message, start):
         estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
 
         progress = "{0}{1}".format(
-            ''.join(["🟢" for i in range(math.floor(percentage / 10))]),
-            ''.join(["⚪︎" for i in range(10 - math.floor(percentage / 10))]))
+            ''.join(["❤️" for i in range(math.floor(percentage / 10))]),
+            ''.join(["🤍" for i in range(10 - math.floor(percentage / 10))]))
 
         tmp = progress + PROGRESS_BAR.format( 
             round(percentage, 2),
@@ -213,7 +119,7 @@ async def progress_bar(current, total, ud_type, message, start):
         )
         try:
             await message.edit(
-                text="{}\n│ {}".format(ud_type, tmp),)             
+                text="{}    {}".format(ud_type, tmp),)             
         except:
             pass
 
@@ -335,17 +241,16 @@ async def progress_callback(current, total, progress_message):
     if current_time - last_update_time >= 10 or percent % 10 == 0:
         completed_blocks = int(percent // 10)
         remaining_blocks = 10 - completed_blocks
-        progress_bar = "🟢" * completed_blocks + "⚪︎" * remaining_blocks
+        progress_bar = "❤️" * completed_blocks + "🤍" * remaining_blocks
         current_mb = current / (1024 * 1024)  
         total_mb = total / (1024 * 1024)      
         await progress_message.edit(
-    f"╭──────────────────╮\n"
-    f"│        **__Uploading...__**       \n"
-    f"├──────────\n"
+    f"╔══━⚡️Uploading⚡️━══╗\n"
+    f" ┉━┉━┉━┉┉━┉━┉━┉┉━┉━\n"
     f"│ {progress_bar}\n\n"
     f"│ **__Progress:__** {percent:.2f}%\n"
-    f"│ **__Uploaded:__** {current_mb:.2f} MB / {total_mb:.2f} MB\n"
-    f"╰──────────────────╯\n\n"
+    f"│ **__Uploaded:__** {current_mb:.2f} MB / {total_mb:.2f} MB\n\n"
+    f" ╚═══━━━──⚝──━━━═══╝\n\n"
     f"**__Pwrd by CHOSEN ONE ⚝__**"
         )
 
@@ -366,8 +271,8 @@ async def prog_bar(current, total, ud_type, message, start):
         estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
 
         progress = "{0}{1}".format(
-            ''.join(["🟢" for i in range(math.floor(percentage / 10))]),
-            ''.join(["⚪︎" for i in range(10 - math.floor(percentage / 10))]))
+            ''.join(["❤️" for i in range(math.floor(percentage / 10))]),
+            ''.join(["🤍" for i in range(10 - math.floor(percentage / 10))]))
 
         tmp = progress + PROGRESS_BAR.format( 
             round(percentage, 2),
@@ -379,7 +284,7 @@ async def prog_bar(current, total, ud_type, message, start):
         )
         try:
             await message.edit_text(
-                text="{}\n│ {}".format(ud_type, tmp),)             
+                text="{}     {}".format(ud_type, tmp),)             
 
         except:
             pass
