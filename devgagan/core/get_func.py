@@ -83,21 +83,52 @@ def format_caption_to_html(caption: str) -> str:
 
     
 
+from pyrogram.enums import ParseMode
+from datetime import datetime
+import os, gc, time, asyncio
+from telethon.tl.types import DocumentAttributeVideo
+
+# Log upload to LOG_GROUP with user info
+async def log_upload(user_id, file_type, file_msg, upload_method, duration=None):
+    try:
+        user = await app.get_users(user_id)
+        user_mention = f"[{user.first_name}](tg://user?id={user.id})" if user else f"`{user_id}`"
+
+        text = (
+            f"📁 **File Name:**> `{file_name or 'Unknown'}`\n"
+            f"📤 **User Details 🌝**\n\n"
+            f"👤 **User:** {user_mention}\n"
+            f"🆔 **User ID:** `{user_id}`\n"
+            f"🗂️ **Type:** `{file_type}`\n"
+            
+        )
+       
+            
+        if duration:
+            text += f"\n🤖 **Saved by:** `{bot_name}`"
+
+        await file_msg.copy(LOG_GROUP, caption=text)
+    except Exception as e:
+        await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
+
+
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
-        upload_method = await fetch_upload_method(sender)  # Fetch the upload method (Pyrogram or Telethon)
+        upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
         thumb_path = await screenshot(file, duration, sender)
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
-        document_formats = {'pdf', 'docx', 'txt', 'epub'}
         image_formats = {'jpg', 'png', 'jpeg'}
 
-        # Pyrogram upload
+        ext = file.split('.')[-1].lower()
+
+        # ────────────── Pyrogram Upload ──────────────
         if upload_method == "Pyrogram":
-            if file.split('.')[-1].lower() in video_formats:
+            if ext in video_formats:
+                file_type = "Video"
                 dm = await app.send_video(
                     chat_id=target_chat_id,
                     video=file,
@@ -111,9 +142,10 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await dm.copy(LOG_GROUP)
-                
-            elif file.split('.')[-1].lower() in image_formats:
+                await log_upload(sender, file_type, dm, "Pyrogram", duration)
+
+            elif ext in image_formats:
+                file_type = "Photo"
                 dm = await app.send_photo(
                     chat_id=target_chat_id,
                     photo=file,
@@ -123,26 +155,29 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     reply_to_message_id=topic_id,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await dm.copy(LOG_GROUP)
+                await log_upload(sender, file_type, dm, "Pyrogram")
+
             else:
+                file_type = f"Document ({ext})"
                 dm = await app.send_document(
                     chat_id=target_chat_id,
                     document=file,
                     caption=caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
-                    progress=progress_bar,
                     parse_mode=ParseMode.MARKDOWN,
+                    progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await asyncio.sleep(2)
-                await dm.copy(LOG_GROUP)
+                await log_upload(sender, file_type, dm, "Pyrogram")
 
-        # Telethon upload
+        # ────────────── Telethon Upload ──────────────
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption = await format_caption_to_html(caption)
+            caption_html = await format_caption_to_html(caption)
+
             uploaded = await fast_upload(
                 gf, file,
                 reply=progress_message,
@@ -152,38 +187,42 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
             await progress_message.delete()
 
             attributes = [
-                DocumentAttributeVideo(
-                    duration=duration,
-                    w=width,
-                    h=height,
-                    supports_streaming=True
-                )
-            ] if file.split('.')[-1].lower() in video_formats else []
+                DocumentAttributeVideo(duration=duration, w=width, h=height, supports_streaming=True)
+            ] if ext in video_formats else []
 
             await gf.send_file(
                 target_chat_id,
                 uploaded,
-                caption=caption,
+                caption=caption_html,
                 attributes=attributes,
                 reply_to=topic_id,
                 thumb=thumb_path
             )
+
+            log_caption = (
+                f"📤 **Upload Logged**\n\n"
+                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
+                f"🗂️ **Type:** `{ext.upper()}`\n"
+                f"⚙️ **Method:** `Telethon`\n"
+                f"⏱️ **Duration:** `{duration} sec`"
+            )
             await gf.send_file(
                 LOG_GROUP,
                 uploaded,
-                caption=caption,
+                caption=log_caption,
                 attributes=attributes,
                 thumb=thumb_path
             )
 
     except Exception as e:
-        await app.send_message(LOG_GROUP, f"**Upload Failed:** {str(e)}")
+        await app.send_message(LOG_GROUP, f"❌ **Upload Failed:** `{str(e)}`")
         print(f"Error during media upload: {e}")
 
     finally:
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
         gc.collect()
+
 
 
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
@@ -916,24 +955,33 @@ async def handle_user_input(event):
         del sessions[user_id]
     
 # Command to store channel IDs
+# Command to lock a channel
 @gf.on(events.NewMessage(incoming=True, pattern='/lock'))
 async def lock_command_handler(event):
     if event.sender_id not in OWNER_ID:
-        return await event.respond("You are not authorized to use this command.")
-    
-    # Extract the channel ID from the command
+        return await event.respond("❌ You are not authorized to use this command.")
+
+    # Try to get the channel either by reply or command argument
     try:
-        channel_id = int(event.text.split(' ')[1])
+        if event.is_reply:
+            replied_msg = await event.get_reply_message()
+            chat = await replied_msg.get_chat()
+        else:
+            channel_id = int(event.text.split(' ')[1])
+            chat = await gf.get_entity(channel_id)
     except (ValueError, IndexError):
-        return await event.respond("Invalid /lock command. Use /lock CHANNEL_ID.")
-    
-    # Save the channel ID to the MongoDB database
-    try:
-        # Insert the channel ID into the collection
-        collection.insert_one({"channel_id": channel_id})
-        await event.respond(f"Channel ID {channel_id} locked successfully.")
-    except Exception as e:
-        await event.respond(f"Error occurred while locking channel ID: {str(e)}")
+        return await event.respond("⚠️ Invalid command. Use `/lock CHANNEL_ID` or reply to a message from the channel.")
+
+    # Check if ⚝ is in channel name
+    if "⚝" in chat.title:
+        # Save the channel ID
+        try:
+            collection.insert_one({"channel_id": chat.id})
+            await event.respond(f"✅ Channel '{chat.title}' (ID: {chat.id}) locked automatically (⚝ found).")
+        except Exception as e:
+            await event.respond(f"❌ Failed to save channel ID: {e}")
+    else:
+        await event.respond("⚠️ This channel does not contain '⚝' in its name. Lock skipped.")
 
 
 async def handle_large_file(file, sender, edit, caption):
