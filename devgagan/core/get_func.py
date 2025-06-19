@@ -118,14 +118,40 @@ async def log_upload(user_id, file_type, file_msg, upload_method, duration=None,
         await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
 
 
+from pyrogram.enums import ParseMode
+from datetime import datetime
+import os, gc, time, asyncio
+from telethon.tl.types import DocumentAttributeVideo
+
+# Log upload to LOG_GROUP with user info
+async def log_upload(user_id, file_type, file_msg, upload_method, duration=None):
+    try:
+        user = await app.get_users(user_id)
+        user_mention = f"[{user.first_name}](tg://user?id={user.id})" if user else f"`{user_id}`"
+
+        text = (
+            f"📤 **New Upload Logged**\n\n"
+            f"👤 **User:** {user_mention}\n"
+            f"🆔 **User ID:** `{user_id}`\n"
+            f"🗂️ **Type:** `{file_type}`\n"
+            f"⚙️ **Method:** `{upload_method}`\n"
+            f"🕒 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+        )
+        if duration:
+            text += f"⏱️ **Duration:** `{duration} sec`\n"
+
+        await file_msg.copy(LOG_GROUP, caption=text)
+    except Exception as e:
+        await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
+
+
+
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
         upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
         thumb_path = await screenshot(file, duration, sender)
-
-        file_name = os.path.basename(file)  # ✅ define this for logging
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
@@ -149,7 +175,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await log_upload(sender, file_type, dm, "Pyrogram", duration, file_name)
+                await log_upload(sender, file_type, dm, "Pyrogram", duration)
 
             elif ext in image_formats:
                 file_type = "Photo"
@@ -162,7 +188,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     reply_to_message_id=topic_id,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
+                await log_upload(sender, file_type, dm, "Pyrogram")
 
             else:
                 file_type = f"Document ({ext})"
@@ -177,7 +203,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await asyncio.sleep(2)
-                await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
+                await log_upload(sender, file_type, dm, "Pyrogram")
 
         # ────────────── Telethon Upload ──────────────
         elif upload_method == "Telethon":
@@ -197,19 +223,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 DocumentAttributeVideo(duration=duration, w=width, h=height, supports_streaming=True)
             ] if ext in video_formats else []
 
-            bot = await app.get_me()
-            bot_name = f"{bot.first_name} (@{bot.username})"
-
-            log_caption = (
-                f"📤 **Upload Logged**\n\n"
-                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
-                f"🗂️ **Type:** `{ext.upper()}`\n"
-                f"📁 **File Name:** `{file_name}`\n"
-                f"⚙️ **Method:** `Telethon`\n"
-                f"⏱️ **Duration:** `{duration} sec`\n\n"
-                f"🤖 **Saved by:** {bot_name}"
-            )
-
             await gf.send_file(
                 target_chat_id,
                 uploaded,
@@ -217,6 +230,14 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 attributes=attributes,
                 reply_to=topic_id,
                 thumb=thumb_path
+            )
+
+            log_caption = (
+                f"📤 **Upload Logged**\n\n"
+                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
+                f"🗂️ **Type:** `{ext.upper()}`\n"
+                f"⚙️ **Method:** `Telethon`\n"
+                f"⏱️ **Duration:** `{duration} sec`"
             )
             await gf.send_file(
                 LOG_GROUP,
@@ -234,6 +255,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
         gc.collect()
+
 
 
 
