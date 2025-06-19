@@ -125,18 +125,14 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
         thumb_path = await screenshot(file, duration, sender)
 
-        # ✅ Get original file name
-        file_name = None
-        if hasattr(file, "name") and file.name:
-            file_name = file.name
-        elif isinstance(file, str):
-            file_name = os.path.basename(file)
+        file_name = os.path.basename(file)  # ✅ define this for logging
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
+
         ext = file.split('.')[-1].lower()
 
-        # ─── Pyrogram Upload ───
+        # ────────────── Pyrogram Upload ──────────────
         if upload_method == "Pyrogram":
             if ext in video_formats:
                 file_type = "Video"
@@ -183,7 +179,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 await asyncio.sleep(2)
                 await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
 
-        # ─── Telethon Upload ───
+        # ────────────── Telethon Upload ──────────────
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
@@ -208,7 +204,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 f"📤 **Upload Logged**\n\n"
                 f"👤 **User:** [{sender}](tg://user?id={sender})\n"
                 f"🗂️ **Type:** `{ext.upper()}`\n"
-                f"📁 **File Name:** `{file_name or 'Unknown'}`\n"
+                f"📁 **File Name:** `{file_name}`\n"
                 f"⚙️ **Method:** `Telethon`\n"
                 f"⏱️ **Duration:** `{duration} sec`\n\n"
                 f"🤖 **Saved by:** {bot_name}"
