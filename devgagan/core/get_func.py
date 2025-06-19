@@ -89,28 +89,33 @@ import os, gc, time, asyncio
 from telethon.tl.types import DocumentAttributeVideo
 
 # Log upload to LOG_GROUP with user info
+# Log upload to LOG_GROUP with user info
 async def log_upload(user_id, file_type, file_msg, upload_method, duration=None, file_name=None):
     try:
         user = await app.get_users(user_id)
+        bot = await app.get_me()
+
         user_mention = f"[{user.first_name}](tg://user?id={user.id})" if user else f"`{user_id}`"
+        bot_name = f"{bot.first_name} (@{bot.username})" if bot else "Unknown Bot"
 
         text = (
-            f"📁 **File Name:**> `{file_name or 'Unknown'}`\n"
-            f"📤 **User Details 🌝**\n\n"
+            f"📁 **File Name:** `{file_name or 'Unknown'}`\n\n"
+            f"📤 **Upload Info**\n"
             f"👤 **User:** {user_mention}\n"
             f"🆔 **User ID:** `{user_id}`\n"
             f"🗂️ **Type:** `{file_type}`\n"
-            
+            f"⚙️ **Method:** `{upload_method}`\n"
         )
-       
-            
+
         if duration:
-            text += f"\n🤖 **Saved by:** `{bot_name}`"
+            text += f"⏱️ **Duration:** `{duration} sec`\n"
+
+        text += f"\n🤖 **Saved by:** `{bot_name}`"
 
         await file_msg.copy(LOG_GROUP, caption=text)
+
     except Exception as e:
         await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
-
 
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
@@ -120,12 +125,18 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
         thumb_path = await screenshot(file, duration, sender)
 
+        # ✅ Get original file name
+        file_name = None
+        if hasattr(file, "name") and file.name:
+            file_name = file.name
+        elif isinstance(file, str):
+            file_name = os.path.basename(file)
+
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
-
         ext = file.split('.')[-1].lower()
 
-        # ────────────── Pyrogram Upload ──────────────
+        # ─── Pyrogram Upload ───
         if upload_method == "Pyrogram":
             if ext in video_formats:
                 file_type = "Video"
@@ -142,7 +153,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await log_upload(sender, file_type, dm, "Pyrogram", duration)
+                await log_upload(sender, file_type, dm, "Pyrogram", duration, file_name)
 
             elif ext in image_formats:
                 file_type = "Photo"
@@ -155,7 +166,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     reply_to_message_id=topic_id,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
-                await log_upload(sender, file_type, dm, "Pyrogram")
+                await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
 
             else:
                 file_type = f"Document ({ext})"
@@ -170,9 +181,9 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await asyncio.sleep(2)
-                await log_upload(sender, file_type, dm, "Pyrogram")
+                await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
 
-        # ────────────── Telethon Upload ──────────────
+        # ─── Telethon Upload ───
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
@@ -190,6 +201,19 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 DocumentAttributeVideo(duration=duration, w=width, h=height, supports_streaming=True)
             ] if ext in video_formats else []
 
+            bot = await app.get_me()
+            bot_name = f"{bot.first_name} (@{bot.username})"
+
+            log_caption = (
+                f"📤 **Upload Logged**\n\n"
+                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
+                f"🗂️ **Type:** `{ext.upper()}`\n"
+                f"📁 **File Name:** `{file_name or 'Unknown'}`\n"
+                f"⚙️ **Method:** `Telethon`\n"
+                f"⏱️ **Duration:** `{duration} sec`\n\n"
+                f"🤖 **Saved by:** {bot_name}"
+            )
+
             await gf.send_file(
                 target_chat_id,
                 uploaded,
@@ -197,14 +221,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 attributes=attributes,
                 reply_to=topic_id,
                 thumb=thumb_path
-            )
-
-            log_caption = (
-                f"📤 **Upload Logged**\n\n"
-                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
-                f"🗂️ **Type:** `{ext.upper()}`\n"
-                f"⚙️ **Method:** `Telethon`\n"
-                f"⏱️ **Duration:** `{duration} sec`"
             )
             await gf.send_file(
                 LOG_GROUP,
