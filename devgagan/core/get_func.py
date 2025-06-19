@@ -89,7 +89,7 @@ import os, gc, time, asyncio
 from telethon.tl.types import DocumentAttributeVideo
 
 # Log upload to LOG_GROUP with user info
-async def log_upload(user_id, file_type, file_msg, upload_method, duration=None):
+async def log_upload(user_id, file_type, file_msg, upload_method, duration=None, file_name=None):
     try:
         user = await app.get_users(user_id)
         user_mention = f"[{user.first_name}](tg://user?id={user.id})" if user else f"`{user_id}`"
