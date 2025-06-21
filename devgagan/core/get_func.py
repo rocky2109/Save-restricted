@@ -751,6 +751,11 @@ m = None
 SET_PIC = "settings.jpg"
 MESS = "Customize by your end and Configure your settings ..."
 
+@gf.on(events.NewMessage(incoming=True, pattern='/settings'))
+async def settings_command(event):
+    user_id = event.sender_id
+    await send_settings_message(event.chat_id, user_id)
+
 async def send_settings_message(chat_id, user_id):
     
     # Define the rest of the buttons
@@ -880,6 +885,7 @@ async def callback_query_handler(event):
             await event.respond('Thumbnail removed successfully!')
         except FileNotFoundError:
             await event.respond("No thumbnail found to remove.")
+    
     
     
 
