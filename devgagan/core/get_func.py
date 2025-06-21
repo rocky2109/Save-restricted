@@ -734,26 +734,18 @@ m = None
 SET_PIC = "settings.jpg"
 MESS = "Customize by your end and Configure your settings ..."
 
-@gf.on(events.NewMessage(incoming=True, pattern='/settings'))
-async def settings_command(event):
-    user_id = event.sender_id
-    await send_settings_message(event.chat_id, user_id)
-
-def status_btn(user_id, key):
-    current = load_user_data(user_id, f"{key}_enabled", False)
-    return Button.inline("✅ ON" if current else "❌ OFF", data=f"toggle_{key}")
-
 async def send_settings_message(chat_id, user_id):
+    
+    # Define the rest of the buttons
     buttons = [
-        [Button.inline("🆔 Set Chat ID", b"setchat"), status_btn(user_id, "setchat")],
-        [Button.inline("🏷️ Set Rename Tag", b"setrename"), status_btn(user_id, "setrename")],
-        [Button.inline("🖋️ Set Caption", b"setcaption"), status_btn(user_id, "setcaption")],
-        [Button.inline("🔁 Replace Words", b"setreplacement"), status_btn(user_id, "setreplacement")],
-        [Button.inline("🧹 Remove Words", b"delete"), status_btn(user_id, "removewords")],
-        [Button.inline("🔐 Session Login", b"addsession"), status_btn(user_id, "session")],
-        [Button.inline("🖼️ Set Thumbnail", b"setthumb"), status_btn(user_id, "thumbnail")],
-        [Button.inline("🚀 Upload Method", b"uploadmethod"), status_btn(user_id, "uploadmethod")],
-        [Button.inline("🔄 Reset All Settings", b"resetall")]
+        [Button.inline("🆔 Set Chat ID", b'setchat'), Button.inline("✏️ Set Rename Tag", b'setrename')],
+        [Button.inline("🔆 Caption", b'setcaption'), Button.inline("💠 Replace Words", b'setreplacement')],
+        [Button.inline("‼️ Remove Words", b'delete'), Button.inline("♻️ Reset", b'reset')],
+        [Button.inline("🎗️ Session Login", b'addsession'), Button.inline("⛔ Logout", b'logout')],
+        [Button.inline("🖼️ Set Thumbnail", b'setthumb'), Button.inline("🧲 Remove Thumbnail", b'remthumb')],
+        [Button.inline("🗂️ PDF Wtmrk", b'pdfwt'), Button.inline("🎥 Video Wtmrk", b'watermark')],
+        [Button.inline("📤 Upload Method", b'uploadmethod')],  # Include the dynamic Fast DL button
+        [Button.url("⚠️ Report Errors", "https://t.me/GeniusJunctionX")]
     ]
 
     await gf.send_file(
@@ -769,144 +761,109 @@ pending_photos = {}
 @gf.on(events.CallbackQuery)
 async def callback_query_handler(event):
     user_id = event.sender_id
-    data = event.data
-
-    if data == b'setchat':
-        await event.respond("📥 Send me the **Chat ID** you want to set:")
+    
+    if event.data == b'setchat':
+        await event.respond("Send me the ID of that chat:")
         sessions[user_id] = 'setchat'
 
-    elif data == b'setrename':
-        await event.respond("🏷️ Send me the **rename tag** you want to use:")
+    elif event.data == b'setrename':
+        await event.respond("Send me the rename tag:")
         sessions[user_id] = 'setrename'
-
-    elif data == b'setcaption':
-        await event.respond("📝 Send me the **caption** format you want to apply:")
+    
+    elif event.data == b'setcaption':
+        await event.respond("Send me the caption:")
         sessions[user_id] = 'setcaption'
 
-    elif data == b'setreplacement':
-        await event.respond("🔁 Send replacement in this format:\n\n`OLDWORD` `NEWWORD`")
+    elif event.data == b'setreplacement':
+        await event.respond("Send me the replacement words in the format: 'WORD(s)' 'REPLACEWORD'")
         sessions[user_id] = 'setreplacement'
 
-    elif data == b'delete':
-        await event.respond("❌ Send words **separated by space** that should be removed from captions:")
+    elif event.data == b'addsession':
+        await event.respond("Send Pyrogram V2 session")
+        sessions[user_id] = 'addsession' # (If you want to enable session based login just uncomment this and modify response message accordingly)
+
+    elif event.data == b'delete':
+        await event.respond("Send words seperated by space to delete them from caption/filename ...")
         sessions[user_id] = 'deleteword'
-
-    elif data == b'addsession':
-        await event.respond("🔐 Send your **Pyrogram V2 session string** to login:")
-        sessions[user_id] = 'addsession'
-
-    elif data == b'logout':
+        
+    elif event.data == b'logout':
         await odb.remove_session(user_id)
         user_data = await odb.get_data(user_id)
         if user_data and user_data.get("session") is None:
-            await event.respond("✅ Logged out and session removed successfully.")
+            await event.respond("Logged out and deleted session successfully.")
         else:
-            await event.respond("ℹ️ You are not logged in.")
-
-    elif data == b'setthumb':
+            await event.respond("You are not logged in.")
+        
+    elif event.data == b'setthumb':
         pending_photos[user_id] = True
-        await event.respond("🖼️ Please send the photo to set as your thumbnail.")
+        await event.respond('Please send the photo you want to set as the thumbnail.')
+    
+    elif event.data == b'pdfwt':
+        await event.respond("Watermark is Pro+ Plan.. contact @GeniusJunctionX")
+        return
 
-    elif data == b'remchat':
-        await odb.remove_data(user_id, "chat_id")
-        await event.respond("🧹 Chat ID removed successfully.")
-
-    elif data == b'remrename':
-        await odb.remove_data(user_id, "rename_tag")
-        await event.respond("🧹 Rename tag removed successfully.")
-
-    elif data == b'remcaption':
-        await odb.remove_data(user_id, "caption")
-        await event.respond("🧹 Caption removed successfully.")
-
-    elif data == b'remreplace':
-        await odb.remove_data(user_id, "replacement_words")
-        await event.respond("🧹 Replacement words removed successfully.")
-
-    elif data == b'clearwords':
-        await odb.remove_data(user_id, "delete_words")
-        await event.respond("🧹 Delete words cleared successfully.")
-
-    elif data == b'remthumb':
-        try:
-            thumb_path = f"thumbnails/{user_id}.jpg"
-            if os.path.exists(thumb_path):
-                os.remove(thumb_path)
-
-            # Optional: remove from DB too
-                await collection.update_one(
-                    {"user_id": user_id},
-                    {"$unset": {"thumbnail": ""}}
-                )
-
-                await event.respond("🧹 Thumbnail removed successfully!")
-            else:
-                await event.respond("❌ No thumbnail found to remove.")
-        except Exception as e:
-            await event.respond(f"⚠️ Error removing thumbnail: {e}")
-
-    elif data == b'uploadmethod':
+    elif event.data == b'uploadmethod':
+        # Retrieve the user's current upload method (default to Pyrogram)
         user_data = collection.find_one({'user_id': user_id})
         current_method = user_data.get('upload_method', 'Pyrogram') if user_data else 'Pyrogram'
         pyrogram_check = " ✅" if current_method == "Pyrogram" else ""
         telethon_check = " ✅" if current_method == "Telethon" else ""
 
+        # Display the buttons for selecting the upload method
         buttons = [
             [Button.inline(f"Pyrogram v2{pyrogram_check}", b'pyrogram')],
             [Button.inline(f"II_LevelUP_II v1 ⚡{telethon_check}", b'telethon')]
         ]
-        await event.edit(
-            "Choose your preferred upload method:\n\n"
-            "__**Note:** **II_LevelUP_II ⚡**, built on Telethon(base), by @II_LevelUP_II still in beta.__",
-            buttons=buttons
-        )
+        await event.edit("Choose your preferred upload method:\n\n__**Note:** **II_LevelUP_II ⚡**, built on Telethon(base), by @II_LevelUP_II still in beta.__", buttons=buttons)
 
-    elif data == b'pyrogram':
+    elif event.data == b'pyrogram':
         save_user_upload_method(user_id, "Pyrogram")
-        await event.edit("✅ Upload method set to **Pyrogram**.")
+        await event.edit("Upload method set to **Pyrogram** ✅")
 
-    elif data == b'telethon':
+    elif event.data == b'telethon':
         save_user_upload_method(user_id, "Telethon")
-        await event.edit("✅ Upload method set to **II_LevelUP_II ⚡**.\n\nThanks for choosing this library!")
-
-    elif data == b'reset':
+        await event.edit("Upload method set to **II_LevelUP_II ⚡\n\nThanks for choosing this library as it will help me to analyze the error raise issues on github.** ✅")        
+        
+    elif event.data == b'reset':
         try:
-            collection.update_one({"_id": user_id}, {
-                "$unset": {
+            user_id_str = str(user_id)
+            
+            collection.update_one(
+                {"_id": user_id},
+                {"$unset": {
                     "delete_words": "",
                     "replacement_words": "",
                     "watermark_text": "",
                     "duration_limit": ""
-                }
-            })
-            collection.update_one({"user_id": user_id}, {
-                "$unset": {
+                }}
+            )
+            
+            collection.update_one(
+                {"user_id": user_id},
+                {"$unset": {
                     "delete_words": "",
                     "replacement_words": "",
                     "watermark_text": "",
                     "duration_limit": ""
-                }
-            })
+                }}
+            )            
             user_chat_ids.pop(user_id, None)
-            user_rename_preferences.pop(str(user_id), None)
-            user_caption_preferences.pop(str(user_id), None)
+            user_rename_preferences.pop(user_id_str, None)
+            user_caption_preferences.pop(user_id_str, None)
             thumbnail_path = f"{user_id}.jpg"
             if os.path.exists(thumbnail_path):
                 os.remove(thumbnail_path)
-            await event.respond("🔄 Reset successfully. To logout click /logout.")
+            await event.respond("✅ Reset successfully, to logout click /logout")
         except Exception as e:
-            await event.respond(f"⚠️ Error during reset: `{e}`")
-
-    elif data.decode().startswith("toggle_"):
-        key = data.decode().replace("toggle_", "")
-        current = load_user_data(user_id, f"{key}_enabled", False)
-        save_user_data(user_id, f"{key}_enabled", not current)
-        await send_settings_message(event.chat_id, user_id)
-        await event.answer(f"{key.replace('_', ' ').title()} is now {'ON ✅' if not current else 'OFF ❌'}")
-
-    else:
-        await event.answer("❓ Unknown action.")
-
+            await event.respond(f"Error clearing delete list: {e}")
+    
+    elif event.data == b'remthumb':
+        try:
+            os.remove(f'{user_id}.jpg')
+            await event.respond('Thumbnail removed successfully!')
+        except FileNotFoundError:
+            await event.respond("No thumbnail found to remove.")
+    
     
 
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
