@@ -225,7 +225,7 @@ async def batch_link(_, message):
     keyboard = InlineKeyboardMarkup([[join_button]])
     pin_msg = await app.send_message(
         user_id,
-        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by Team SPY**",
+        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
         reply_markup=keyboard
     )
     await pin_msg.pin(both_sides=True)
@@ -244,17 +244,30 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Team SPY__**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
                         reply_markup=keyboard
                     )
                     normal_links_handled = True
         if normal_links_handled:
             await set_interval(user_id, interval_minutes=300)
             await pin_msg.edit_text(
-                f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Team SPY__**",
+                f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
                 reply_markup=keyboard
             )
-            await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
+            bot = await app.get_me()
+            bot_username = bot.username
+            share_link = f"https://t.me/share/url?url=https://t.me/{bot_username}?start=true"
+
+            share_keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🤖 Share with Contacts", url=share_link)]
+            ])
+
+            await app.send_message(
+                message.chat.id,
+                f"✅ Batch completed successfully for `{cl}` messages!\n\n📣 Tap below to share this bot with your friends:",
+                reply_markup=share_keyboard
+            )
+
             return
             
         # Handle special links with userbot
@@ -270,16 +283,29 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Team SPY__**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
                         reply_markup=keyboard
                     )
 
         await set_interval(user_id, interval_minutes=300)
         await pin_msg.edit_text(
-            f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Team SPY__**",
+            f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
             reply_markup=keyboard
         )
-        await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
+        bot = await app.get_me()
+        bot_username = bot.username
+        share_link = f"https://t.me/share/url?url=https://t.me/{bot_username}?start=true"
+
+        share_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🤖 Share with Contacts", url=share_link)]
+        ])
+
+        await app.send_message(
+            message.chat.id,
+            f"✅ Batch completed successfully for `{cl}` messages!\n\n📣 Tap below to share this bot with your friends:",
+            reply_markup=share_keyboard
+        )
+
 
     except Exception as e:
         await app.send_message(message.chat.id, f"Error: {e}")
