@@ -225,7 +225,7 @@ async def batch_link(_, message):
     keyboard = InlineKeyboardMarkup([[join_button]])
     pin_msg = await app.send_message(
         user_id,
-        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
+        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'></a></blockquote></b>**",
         reply_markup=keyboard
     )
     await pin_msg.pin(both_sides=True)
@@ -244,14 +244,14 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'></a></blockquote></b>**",
                         reply_markup=keyboard
                     )
                     normal_links_handled = True
         if normal_links_handled:
             await set_interval(user_id, interval_minutes=300)
             await pin_msg.edit_text(
-                f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
+                f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'></a></blockquote></b>**",
                 reply_markup=keyboard
             )
             bot = await app.get_me()
@@ -283,13 +283,13 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'></a></blockquote></b>**",
                         reply_markup=keyboard
                     )
 
         await set_interval(user_id, interval_minutes=300)
         await pin_msg.edit_text(
-            f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'>{title}</a></blockquote></b>**",
+            f"Batch completed successfully for {cl} messages 🎉\n\n**<blockquote>𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='http://t.me/CHOSEN_ONEx_bot'></a></blockquote></b>**",
             reply_markup=keyboard
         )
         bot = await app.get_me()
