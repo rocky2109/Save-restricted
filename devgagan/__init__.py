@@ -1,23 +1,24 @@
 # ---------------------------------------------------
 # File Name: __init__.py
-# Description: A Pyrogram bot for downloading files from Telegram channels or groups 
-#              and uploading them back to Telegram.
+# Description: A Pyrogram bot with auto-restart functionality
 # Author: Gagan
 # GitHub: https://github.com/devgaganin/
 # Telegram: https://t.me/team_spy_pro
 # YouTube: https://youtube.com/@dev_gagan
 # Created: 2025-01-11
 # Last Modified: 2025-01-11
-# Version: 2.0.5
+# Version: 2.0.6
 # License: MIT License
 # ---------------------------------------------------
 
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+import os
+import sys
+from datetime import datetime
 from pyrogram import Client
-from pyrogram.enums import ParseMode 
+from pyrogram.enums import ParseMode
 from config import API_ID, API_HASH, BOT_TOKEN, STRING, MONGO_DB
 from telethon.sync import TelegramClient
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -28,12 +29,11 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# Global variables
-botStartTime = time.time()
+# Constants
 RESTART_INTERVAL = 300  # 5 minutes in seconds
-restart_task = None
+botStartTime = time.time()
 
-# Clients initialization
+# Initialize clients
 app = Client(
     ":RestrictBot:",
     api_id=API_ID,
@@ -50,48 +50,83 @@ sex = TelegramClient('sexrepo', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 tclient = AsyncIOMotorClient(MONGO_DB)
 tdb = tclient["telegram_bot"]
 token = tdb["tokens"]
+users = tdb["users"]  # Collection to store user IDs
 
 async def create_ttl_index():
-    """Ensure the TTL index exists for the `tokens` collection."""
+    """Ensure the TTL index exists for the tokens collection."""
     await token.create_index("expires_at", expireAfterSeconds=0)
 
-async def notify_admins_restart():
-    """Send restart notification to all admins"""
-    restart_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    message = f"♻️ **Bot Restarted**\n\n⏰ Time: `{restart_time}`\n🔄 Next restart in 5 minutes"
-    
-    for admin_id in ADMINS:
-        try:
-            await app.send_message(admin_id, message)
-        except Exception as e:
-            logging.error(f"Failed to notify admin {admin_id}: {str(e)}")
+async def setup_database():
+    """Initialize database connections and indexes."""
+    await create_ttl_index()
+    logging.info("MongoDB TTL index created.")
 
-async def restart_bot():
-    """Restart the bot every 5 minutes"""
+async def get_all_users():
+    """Retrieve all user IDs from the database."""
+    try:
+        return await users.distinct("_id")
+    except Exception as e:
+        logging.error(f"Error fetching users: {str(e)}")
+        return []
+
+async def notify_users_restart():
+    """Send restart notification to all users."""
+    try:
+        user_ids = await get_all_users()
+        restart_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message = (
+            "♻️ **Bot Maintenance Notification**\n\n"
+            f"🕒 Last Restart: `{restart_time}`\n"
+            "⚙️ The bot has been automatically restarted for maintenance.\n"
+            "🔧 All services are now back online!"
+        )
+
+        success = 0
+        failures = 0
+
+        for user_id in user_ids:
+            try:
+                await app.send_message(user_id, message)
+                success += 1
+                await asyncio.sleep(0.5)  # Rate limiting
+            except Exception as e:
+                failures += 1
+                logging.error(f"Failed to notify user {user_id}: {str(e)}")
+
+        logging.info(f"Restart notifications sent: {success} successful, {failures} failed")
+    except Exception as e:
+        logging.error(f"Notification system error: {str(e)}")
+
+async def restart_sequence():
+    """Perform the restart sequence with notifications."""
+    logging.info("Initiating scheduled restart...")
+    
+    try:
+        await notify_users_restart()
+    except Exception as e:
+        logging.error(f"Restart notification failed: {str(e)}")
+    
+    # Graceful shutdown
+    try:
+        await app.stop()
+        if STRING:
+            await pro.stop()
+        await sex.disconnect()
+    except Exception as e:
+        logging.error(f"Error during shutdown: {str(e)}")
+    
+    # Restart process
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+async def auto_restart_scheduler():
+    """Schedule automatic restarts every 5 minutes."""
     while True:
         await asyncio.sleep(RESTART_INTERVAL)
-        logging.info("Initiating scheduled restart...")
-        
-        try:
-            await notify_admins_restart()
-        except Exception as e:
-            logging.error(f"Restart notification failed: {str(e)}")
-        
-        # Graceful shutdown
-        try:
-            await app.stop()
-            if STRING:
-                await pro.stop()
-            await sex.disconnect()
-        except Exception as e:
-            logging.error(f"Error during shutdown: {str(e)}")
-        
-        # Restart process
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        await restart_sequence()
 
 async def restrict_bot():
-    """Main bot startup function"""
-    global BOT_ID, BOT_NAME, BOT_USERNAME, restart_task
+    """Main bot startup function."""
+    global BOT_ID, BOT_NAME, BOT_USERNAME
     
     await setup_database()
     await app.start()
@@ -104,27 +139,10 @@ async def restrict_bot():
     if STRING:
         await pro.start()
     
-    # Send startup notification
-    startup_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    for admin_id in ADMINS:
-        try:
-            await app.send_message(
-                admin_id,
-                f"🤖 **Bot Started Successfully**\n\n"
-                f"🕒 Startup Time: `{startup_time}`\n"
-                f"🔧 Version: `2.0.5`\n"
-                f"🔄 Auto-restart every 5 minutes"
-            )
-        except Exception as e:
-            logging.error(f"Failed to send startup notification: {str(e)}")
+    # Start the auto-restart scheduler
+    asyncio.create_task(auto_restart_scheduler())
     
-    # Start restart scheduler
-    restart_task = asyncio.create_task(restart_bot())
-
-async def setup_database():
-    """Initialize database connections"""
-    await create_ttl_index()
-    logging.info("MongoDB TTL index created")
+    logging.info(f"Bot started successfully! Auto-restart scheduled every {RESTART_INTERVAL//60} minutes.")
 
 # Main execution
 if __name__ == "__main__":
@@ -137,8 +155,6 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}")
     finally:
-        if restart_task:
-            restart_task.cancel()
         loop.run_until_complete(app.stop())
         if STRING:
             loop.run_until_complete(pro.stop())
