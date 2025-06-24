@@ -170,79 +170,6 @@ async def batch_link(_, message):
     if join == 1:
         return
     user_id = message.chat.id
-    
-    # Check if batch process already running
-    if users_loop.get(user_id, False):
-        await message.reply(
-            "⏳ You already have a batch process running.\n"
-            "Please wait for it to complete before starting a new one."
-        )
-        return
-
-    freecheck = await chk_user(message, user_id)
-    if freecheck == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
-        await message.reply(
-            "🚫 Freemium service is currently not available.\n"
-            "Upgrade to premium for access:\n"
-            "<code>/plan</code> to see premium options"
-        )
-        return
-
-    max_batch_size = FREEMIUM_LIMIT if freecheck == 1 else PREMIUM_LIMIT
-
-    # Start link input
-    for attempt in range(3):
-        start = await app.ask(
-            message.chat.id,
-            "🔗 <b>Please send the start link:</b>\n"
-            "<i>(Max 3 attempts)</i>"
-        )
-        start_id = start.text.strip()
-        s = start_id.split("/")[-1]
-        if s.isdigit():
-            cs = int(s)
-            break
-        await message.reply("❌ Invalid link format. Please send a valid Telegram message link.")
-    else:
-        await message.reply("⚠️ Maximum attempts exceeded. Please try again later.")
-        return
-
-    # Number of messages input
-    for attempt in range(3):
-        num_messages = await app.ask(
-            message.chat.id,
-            f"🔢 <b>How many messages to process?</b>\n"
-            f"<i>(Max limit: {max_batch_size})</i>"
-        )
-        try:
-            cl = int(num_messages.text.strip())
-            if 1 <= cl <= max_batch_size:
-                break
-            raise ValueError()
-        except ValueError:
-            await message.reply(
-                f"❌ Invalid number. Please enter between <b>1</b> and <b>{max_batch_size}</b>."
-            )
-    else:
-        await message.reply("⚠️ Maximum attempts exceeded. Please try again later.")
-        return
-
-    # Validate interval
-    can_proceed, response_message = await check_interval(user_id, freecheck)
-    if not can_proceed:
-        await message.reply(response_message)
-        return
-        
-    join_button = InlineKeyboardButton("📢 Join Channel", url="https://t.me/team_spy_pro")
-    keyboard = InlineKeyboardMarkup([[join_button]])
-    
-    pin_msg = await message.reply(
-@app.on_message(filters.command("batch") & filters.private)
-async def batch_link(_, message):
-    join = await subscribe(_, message)
-    if join == 1:
-        return
-    user_id = message.chat.id
     # Check if a batch process is already running
     if users_loop.get(user_id, False):
         await app.send_message(
@@ -358,6 +285,7 @@ async def batch_link(_, message):
         await app.send_message(message.chat.id, f"Error: {e}")
     finally:
         users_loop.pop(user_id, None)
+
 @app.on_message(filters.command("cancel"))
 async def stop_batch(_, message):
     user_id = message.chat.id
@@ -378,4 +306,4 @@ async def stop_batch(_, message):
         await app.send_message(
             message.chat.id, 
             "No active batch processing is running to cancel."
-        )
+    )
