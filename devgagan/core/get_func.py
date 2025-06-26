@@ -665,6 +665,26 @@ def format_caption(original_caption, sender, custom_caption):
     original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
     original_caption = re.sub(r'(Downloaded By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
     original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    
+    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(📩Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+
+# Replace "𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌" stylized phrases
+    original_caption = re.sub(
+        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[\.\n🖤❤️]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        original_caption
+    )
+
+# Replace "𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣" styled phrases
+    original_caption = re.sub(
+        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[\.\n🖤❤️]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        original_caption
+    )
+
+
 
 
 
