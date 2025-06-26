@@ -124,8 +124,32 @@ from telethon.tl.types import DocumentAttributeVideo
 import os, gc, time, asyncio
 
 # Unified log_upload
+import re
+
+async def clean_caption(caption):
+    if not caption:
+        return caption
+    
+    patterns_to_remove = [
+        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
+        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
+        r'One Destination[^\n🖤❤️]*',
+        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
+    ]
+    
+    for pattern in patterns_to_remove:
+        caption = re.sub(pattern, '', caption, flags=re.IGNORECASE)
+    
+    # Clean up any resulting double newlines or leading/trailing whitespace
+    caption = re.sub(r'\n\s*\n', '\n', caption).strip()
+    
+    return caption
+
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
+        # Clean the caption before uploading
+        cleaned_caption = await clean_caption(caption)
+        
         upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
@@ -136,47 +160,24 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
-        audio_formats = {'mp3', 'wav', 'm4a', 'aac', 'flac'}
-
-        # Blockquote format the caption
-        def blockquote(text):
-            if not text:
-                return None
-            return "\n".join([f"> {line}" for line in text.strip().splitlines()])
-
-        caption = blockquote(caption)
 
         # ────── Pyrogram Upload ──────
         if upload_method == "Pyrogram":
             if ext in video_formats:
-                if metadata.get("is_audio_only", False):  # e.g. .mp4 but no video track
-                    file_type = "Audio (.mp4)"
-                    dm = await app.send_audio(
-                        chat_id=target_chat_id,
-                        audio=file,
-                        caption=caption,
-                        duration=duration,
-                        thumb=thumb_path,
-                        reply_to_message_id=topic_id,
-                        parse_mode=ParseMode.MARKDOWN,
-                        progress=progress_bar,
-                        progress_args=("🎧 Uploading Audio...", edit, time.time())
-                    )
-                else:
-                    file_type = "Video"
-                    dm = await app.send_video(
-                        chat_id=target_chat_id,
-                        video=file,
-                        caption=caption,
-                        height=height,
-                        width=width,
-                        duration=duration,
-                        thumb=thumb_path,
-                        reply_to_message_id=topic_id,
-                        parse_mode=ParseMode.MARKDOWN,
-                        progress=progress_bar,
-                        progress_args=("🎬 Uploading Video...", edit, time.time())
-                    )
+                file_type = "Video"
+                dm = await app.send_video(
+                    chat_id=target_chat_id,
+                    video=file,
+                    caption=cleaned_caption,
+                    height=height,
+                    width=width,
+                    duration=duration,
+                    thumb=thumb_path,
+                    reply_to_message_id=topic_id,
+                    parse_mode=ParseMode.MARKDOWN,
+                    progress=progress_bar,
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
+                )
                 await log_upload(sender, file_type, dm, "Pyrogram", duration, file_name)
 
             elif ext in image_formats:
@@ -184,40 +185,25 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_photo(
                     chat_id=target_chat_id,
                     photo=file,
-                    caption=caption,
+                    caption=cleaned_caption,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
-                    progress_args=("🖼️ Uploading Image...", edit, time.time())
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
-
-            elif ext in audio_formats:
-                file_type = "Audio"
-                dm = await app.send_audio(
-                    chat_id=target_chat_id,
-                    audio=file,
-                    caption=caption,
-                    duration=duration,
-                    thumb=thumb_path,
-                    reply_to_message_id=topic_id,
-                    parse_mode=ParseMode.MARKDOWN,
-                    progress=progress_bar,
-                    progress_args=("🎧 Uploading Audio...", edit, time.time())
-                )
-                await log_upload(sender, file_type, dm, "Pyrogram", duration, file_name)
 
             else:
                 file_type = f"Document ({ext})"
                 dm = await app.send_document(
                     chat_id=target_chat_id,
                     document=file,
-                    caption=caption,
+                    caption=cleaned_caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
-                    progress_args=("📄 Uploading File...", edit, time.time())
+                    progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
                 await asyncio.sleep(2)
                 await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
@@ -226,12 +212,12 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption_html = await format_caption(caption)
+            caption_html = await format_caption_to_html(cleaned_caption)
 
             uploaded = await fast_upload(
                 gf, file,
                 reply=progress_message,
-                name=file_name,
+                name=huu,
                 progress_bar_function=lambda done, total: progress_callback(done, total, sender)
             )
             await progress_message.delete()
@@ -280,7 +266,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
         gc.collect()
-
 
 
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
