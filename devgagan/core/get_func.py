@@ -123,25 +123,29 @@ from datetime import datetime
 from telethon.tl.types import DocumentAttributeVideo
 import os, gc, time, asyncio
 
-# Unified log_upload
+import re
+import unicodedata
 
 async def clean_caption(caption):
     if not caption:
         return caption
-    
+
+    # Step 1: Remove known spam phrases using flexible patterns
     patterns_to_remove = [
-        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
-        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
-        r'One Destination[^\n🖤❤️]*',
-        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
+        r'[𝐒𝗍ⱺ𝗅𝖾𐓣𝐇𝖺𝗉𝗉𝗂𝖾𝗌𝗌🖤❤️.\s,:•🌹💫↝\-–—_]+',
+        r'[𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,𝐎𐓣𝖾𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣🖤❤️.\s,:•🌹💫↝]+',
+        r'One\s+Destination[\.\s🖤❤️↝💫🌹\-–—_]*',
+        r'[\*]*𝐎𝗇𝖾\s+𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇[\*]*[^\n🖤❤️↝🌹💫]*'
     ]
-    
     for pattern in patterns_to_remove:
-        caption = re.sub(pattern, '', caption, flags=re.IGNORECASE)
-    
-    # Clean up any resulting double newlines or leading/trailing whitespace
+        caption = re.sub(pattern, '', caption, flags=re.IGNORECASE | re.UNICODE)
+
+    # Step 2: Remove all non-ASCII (stylized/fancy) characters
+    caption = ''.join(c for c in caption if c.isascii())
+
+    # Step 3: Remove extra whitespace/newlines
     caption = re.sub(r'\n\s*\n', '\n', caption).strip()
-    
+
     return caption
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
