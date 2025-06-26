@@ -130,23 +130,22 @@ async def clean_caption(caption):
     if not caption:
         return caption
 
-    # Step 1: Remove known spam phrases using flexible patterns
+    # Flexible Unicode-safe patterns using character classes
     patterns_to_remove = [
-        r'[𝐒𝗍ⱺ𝗅𝖾𐓣𝐇𝖺𝗉𝗉𝗂𝖾𝗌𝗌🖤❤️.\s,:•🌹💫↝\-–—_]+',
-        r'[𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,𝐎𐓣𝖾𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣🖤❤️.\s,:•🌹💫↝]+',
-        r'One\s+Destination[\.\s🖤❤️↝💫🌹\-–—_]*',
-        r'[\*]*𝐎𝗇𝖾\s+𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇[\*]*[^\n🖤❤️↝🌹💫]*'
+        r'[𝐒𝗍ⱺ𝗅𝖾𐓣𝐇𝖺𝗉𝗉𝗂𝖾𝗌𝗌🖤❤️.\s,:•🌹💫\-–—_↝]+',  # Covers fancy style 'Style Happiness 🖤'
+        r'[𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,𝐎𐓣𝖾𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣🖤❤️.\s,:•🌹💫↝]+',  # Covers stubborn one destination
+        r'One\s+Destination[\.\s🖤❤️↝💫🌹\-–—_]*',            # Normal text variant
+        r'[\*]*𝐎𝗇𝖾\s+𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇[\*]*[^\n🖤❤️↝🌹💫]*'        # Bold or italic styled
     ]
+
     for pattern in patterns_to_remove:
         caption = re.sub(pattern, '', caption, flags=re.IGNORECASE | re.UNICODE)
 
-    # Step 2: Remove all non-ASCII (stylized/fancy) characters
-    caption = ''.join(c for c in caption if c.isascii())
-
-    # Step 3: Remove extra whitespace/newlines
+    # Remove extra newlines or whitespace
     caption = re.sub(r'\n\s*\n', '\n', caption).strip()
 
     return caption
+
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
