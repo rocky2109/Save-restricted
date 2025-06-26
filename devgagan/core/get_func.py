@@ -147,9 +147,6 @@ async def clean_caption(caption):
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
-        # Clean the caption before uploading
-        cleaned_caption = await clean_caption(caption)
-        
         upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
@@ -161,6 +158,11 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
 
+        # ✨ Clean and format caption (blockquote, filters, etc.)
+        class Dummy:
+            caption = type("obj", (object,), {"markdown": caption})()
+        caption = await get_final_caption(Dummy, sender)
+
         # ────── Pyrogram Upload ──────
         if upload_method == "Pyrogram":
             if ext in video_formats:
@@ -168,7 +170,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_video(
                     chat_id=target_chat_id,
                     video=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     height=height,
                     width=width,
                     duration=duration,
@@ -185,7 +187,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_photo(
                     chat_id=target_chat_id,
                     photo=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
@@ -198,7 +200,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_document(
                     chat_id=target_chat_id,
                     document=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
                     parse_mode=ParseMode.MARKDOWN,
@@ -212,7 +214,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption_html = await format_caption_to_html(cleaned_caption)
+            caption_html = await format_caption_to_html(caption)
 
             uploaded = await fast_upload(
                 gf, file,
@@ -266,6 +268,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
         gc.collect()
+
 
 
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
@@ -451,58 +454,51 @@ def get_message_file_size(msg):
 
 
 
-import re
-
 async def get_final_caption(msg, sender):
-    # 📝 Get original caption
     original_caption = msg.caption.markdown if msg.caption else ""
-
-    # 🪄 Get user's custom caption
+    
+    # Append custom caption
     custom_caption = get_user_caption_preference(sender)
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
-    # 🔁 Replace all @mentions with your handle
+    # Replace @mentions
     final_caption = re.sub(r'@\w+', '@II_LevelUP_II', final_caption)
 
-    # 🔗 Replace all URLs with your channel invite
-    final_caption = re.sub(
-        r'https?://t\.me/[^\s]+|https?://telegram\.me/[^\s]+|https?://\S+|www\.\S+',
-        'https://t.me/II_Way_to_Success_II',
-        final_caption
-    )
+    # Replace links
+    final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/II_Way_to_Success_II', final_caption)
 
-    # 🧹 Remove or overwrite tags like Extracted By / Downloaded By
-    patterns_to_clean = [
-        r'(📩)?(Extracted By)[:\-]?[^\n]+',
-        r'(📥)?(Downloaded By)[:\-]?[^\n]+',
-        r'(Downloaded By:) ?[^\n]+',
-        r'(Extracted By:) ?[^\n]+'
-    ]
-    for pattern in patterns_to_clean:
-        final_caption = re.sub(pattern, r'\2: @II_LevelUP_II', final_caption, flags=re.IGNORECASE)
-
-    # 🧠 Replace known stylized phrases
-    weird_lines = [
-        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
-        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
-        r'One Destination[^\n🖤❤️]*',
-        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
-    ]
-    for line in weird_lines:
-        final_caption = re.sub(line, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', final_caption, flags=re.IGNORECASE)
-
-    # 🚫 Delete words
-    delete_words = load_delete_words(sender)
-    for word in delete_words:
-        final_caption = final_caption.replace(word, "")
-
-    # 🔁 Apply custom replacements
+    # Custom keyword/phrase replacements
     replacements = load_replacement_words(sender)
     for word, replace_word in replacements.items():
         final_caption = final_caption.replace(word, replace_word)
 
-    # 📦 Final blockquote-style formatting
-    return "\n".join([f"> {line}" for line in final_caption.strip().splitlines()]) if final_caption else None
+    # ✨ Stylized & promo line cleanup
+    final_caption = re.sub(
+        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        final_caption
+    )
+    final_caption = re.sub(
+        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        final_caption
+    )
+    final_caption = re.sub(
+        r'One Destination[^\n🖤❤️]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        final_caption
+    )
+    final_caption = re.sub(
+        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*',
+        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
+        final_caption
+    )
+
+    # Optional: format as blockquote
+    lines = final_caption.strip().splitlines()
+    blockquoted = "\n".join(f"> {line}" for line in lines if line.strip())
+
+    return blockquoted or None
 
 
 
