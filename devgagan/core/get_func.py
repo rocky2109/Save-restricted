@@ -466,26 +466,59 @@ def get_message_file_size(msg):
 
 
 
+import re
+
 async def get_final_caption(msg, sender):
-    # Get original caption in markdown if available
+    # 📝 Get original caption
     original_caption = msg.caption.markdown if msg.caption else ""
-    
-    # Add custom caption if present
+
+    # 🪄 Get user's custom caption
     custom_caption = get_user_caption_preference(sender)
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
-    # Replace @mentions with @Real_Pirates
+    # 🔁 Replace all @mentions with your handle
     final_caption = re.sub(r'@\w+', '@II_LevelUP_II', final_caption)
 
-    # Replace all links with your channel link
-    final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/II_Way_to_Success_II', final_caption)
+    # 🔗 Replace all URLs with your channel invite
+    final_caption = re.sub(
+        r'https?://t\.me/[^\s]+|https?://telegram\.me/[^\s]+|https?://\S+|www\.\S+',
+        'https://t.me/II_Way_to_Success_II',
+        final_caption
+    )
 
-    # Perform additional replacements from user-defined rules
+    # 🧹 Remove or overwrite tags like Extracted By / Downloaded By
+    patterns_to_clean = [
+        r'(📩)?(Extracted By)[:\-]?[^\n]+',
+        r'(📥)?(Downloaded By)[:\-]?[^\n]+',
+        r'(Downloaded By:) ?[^\n]+',
+        r'(Extracted By:) ?[^\n]+'
+    ]
+    for pattern in patterns_to_clean:
+        final_caption = re.sub(pattern, r'\2: @II_LevelUP_II', final_caption, flags=re.IGNORECASE)
+
+    # 🧠 Replace known stylized phrases
+    weird_lines = [
+        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
+        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
+        r'One Destination[^\n🖤❤️]*',
+        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
+    ]
+    for line in weird_lines:
+        final_caption = re.sub(line, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', final_caption, flags=re.IGNORECASE)
+
+    # 🚫 Delete words
+    delete_words = load_delete_words(sender)
+    for word in delete_words:
+        final_caption = final_caption.replace(word, "")
+
+    # 🔁 Apply custom replacements
     replacements = load_replacement_words(sender)
     for word, replace_word in replacements.items():
         final_caption = final_caption.replace(word, replace_word)
 
-    return final_caption.strip() if final_caption else None
+    # 📦 Final blockquote-style formatting
+    return "\n".join([f"> {line}" for line in final_caption.strip().splitlines()]) if final_caption else None
+
 
 
 
