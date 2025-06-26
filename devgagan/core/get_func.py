@@ -126,23 +126,29 @@ import os, gc, time, asyncio
 import re
 import unicodedata
 
+import re
+import unicodedata
+
 async def clean_caption(caption):
     if not caption:
         return caption
 
-    # Normalize the text to NFKD to make weird Unicode characters comparable
+    # Normalize all Unicode characters (to strip special symbols)
     normalized = unicodedata.normalize("NFKD", caption)
 
+    # Stronger regex patterns targeting problematic phrases
     patterns_to_replace = [
-        r'[𝐒𝚂𝗌𝖘𝘀𝒮𝑺𝓢𝕊Ȿ][^\n]{1,50}?[🖤❤️\n]*',  # Matches stylized text blocks with hearts
-        r'One[\s\-_.]*Destination[^\n🖤❤️]*',        # Matches normal or slightly modified "One Destination"
-        r'[𝐎𝘖𝙊𝓞𝕆𝗢𝑶𝖮𝔒𝒪][^\n]{1,50}?[🖤❤️\n]*',        # Another possible stylized variation
+        r'[\s🖤❤️]*[𝐒𝚂𝗌𝖘𝘀𝒮𝑺𝓢𝕊Ȿ][^\n]{0,50}?(style|happy|destination)[^\n🖤❤️]*',
+        r'[\s🖤❤️]*𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗.*?𝐎𐓣.*?[𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣]+[^\n🖤❤️]*',
+        r'[\s🖤❤️]*One[\s\-_.]*Destination[^\n🖤❤️]*',
+        r'[\s🖤❤️]*[𝐎𝗢𝓞𝕆𝖮]+[\s]*[𝐃𝗗𝖣𝓓𝕯𝒟𝙳]+[^\n🖤❤️]*',
+        r'[\s🖤❤️]*𝐎𐓣e[\s\-_.]*Desti𐓣αtiⱺ𐓣[^\n🖤❤️]*',  # Direct match for your exact string
     ]
 
     for pattern in patterns_to_replace:
         normalized = re.sub(pattern, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', normalized, flags=re.IGNORECASE)
 
-    # Remove duplicate newlines and strip
+    # Clean up double spacing or newlines
     cleaned = re.sub(r'\n\s*\n', '\n', normalized).strip()
 
     return cleaned
