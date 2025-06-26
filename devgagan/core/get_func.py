@@ -68,7 +68,7 @@ def format_caption_to_html(caption: str) -> str:
     if not caption:
         return None
 
-    caption = re.sub(r"^> (.*)", r"<blockquote>\1</blockquote>", caption, flags=re.MULTILINE)
+    
     caption = re.sub(r"```(.*?)```", r"<pre>\1</pre>", caption, flags=re.DOTALL)
     caption = re.sub(r"`(.*?)`", r"<code>\1</code>", caption)
     caption = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", caption)
@@ -226,7 +226,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption_html = await format_caption_to_html(caption)
+            caption_html = await format_caption(caption)
 
             uploaded = await fast_upload(
                 gf, file,
@@ -659,6 +659,12 @@ def format_caption(original_caption, sender, custom_caption):
     delete_words = load_delete_words(sender)
     replacements = load_replacement_words(sender)
 
+    if not original_caption:
+        return ""
+
+    # 🔄 Normalize strange Unicode to improve matching (optional)
+    original_caption = original_caption.replace("𝗈", "o").replace("𝗂", "i").replace("𝗌", "s")
+
     # ✅ Replace all @mentions with your bot's handle
     original_caption = re.sub(r'@\w+', '@Src_pro_bot', original_caption)
 
@@ -668,28 +674,41 @@ def format_caption(original_caption, sender, custom_caption):
         'https://t.me/+7R-7p7jVoz9mM2M1',
         original_caption
     )
-    # ✅ Remove everything after 'Extracted By ...'
-    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(Downloaded By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    
-    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(📩Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
 
-# Replace "𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌" stylized phrases
-    original_caption = re.sub(
-        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[\.\n🖤❤️]*',
-        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
-        original_caption
-    )
+    # ✅ Remove patterns like "Extracted By", "Downloaded By"
+    patterns_to_replace = [
+        r'(📩)?(Extracted By)[:\-]?[^\n]+',
+        r'(📥)?(Downloaded By)[:\-]?[^\n]+',
+        r'(Downloaded By:) ?[^\n]+',
+        r'(Extracted By:) ?[^\n]+'
+    ]
+    for pattern in patterns_to_replace:
+        original_caption = re.sub(pattern, r'\2: @Src_pro_bot', original_caption, flags=re.IGNORECASE)
 
-# Replace "𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣" styled phrases
-    original_caption = re.sub(
-        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[\.\n🖤❤️]*',
-        '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝',
-        original_caption
-    )
+    # ✅ Replace stylized lines (One Destination variants)
+    weird_lines = [
+        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
+        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
+        r'One Destination[^\n🖤❤️]*',
+        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
+    ]
+    for line in weird_lines:
+        original_caption = re.sub(line, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', original_caption, flags=re.IGNORECASE)
+
+    # ✅ Apply delete word filters
+    for word in delete_words:
+        original_caption = original_caption.replace(word, "")
+
+    # ✅ Apply replacements
+    for old, new in replacements.items():
+        original_caption = original_caption.replace(old, new)
+
+    # ✅ Replace final custom caption if needed
+    if custom_caption:
+        original_caption = custom_caption
+
+    # ✅ Blockquote style
+    return "\n".join([f"> {line}" for line in original_caption.strip().splitlines()])
 
 
 
