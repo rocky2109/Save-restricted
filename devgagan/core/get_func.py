@@ -124,7 +124,6 @@ from telethon.tl.types import DocumentAttributeVideo
 import os, gc, time, asyncio
 
 # Unified log_upload
-import re
 
 async def clean_caption(caption):
     if not caption:
@@ -147,6 +146,9 @@ async def clean_caption(caption):
 
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
+        # Clean the caption before uploading
+        cleaned_caption = await clean_caption(caption)
+        
         upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
@@ -158,11 +160,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
 
-        # ✨ Clean and format caption (blockquote, filters, etc.)
-        class Dummy:
-            caption = type("obj", (object,), {"markdown": caption})()
-        caption = await get_final_caption(Dummy, sender)
-
         # ────── Pyrogram Upload ──────
         if upload_method == "Pyrogram":
             if ext in video_formats:
@@ -170,7 +167,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_video(
                     chat_id=target_chat_id,
                     video=file,
-                    caption=caption,
+                    caption=cleaned_caption,
                     height=height,
                     width=width,
                     duration=duration,
@@ -187,7 +184,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_photo(
                     chat_id=target_chat_id,
                     photo=file,
-                    caption=caption,
+                    caption=cleaned_caption,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
@@ -200,7 +197,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_document(
                     chat_id=target_chat_id,
                     document=file,
-                    caption=caption,
+                    caption=cleaned_caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
                     parse_mode=ParseMode.MARKDOWN,
@@ -214,7 +211,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption_html = await format_caption_to_html(caption)
+            caption_html = await format_caption_to_html(cleaned_caption)
 
             uploaded = await fast_upload(
                 gf, file,
@@ -268,7 +265,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
         gc.collect()
-
 
 
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
