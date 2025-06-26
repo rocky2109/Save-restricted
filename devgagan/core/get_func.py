@@ -124,26 +124,29 @@ from telethon.tl.types import DocumentAttributeVideo
 import os, gc, time, asyncio
 
 import re
+import unicodedata
 
 async def clean_caption(caption):
     if not caption:
         return caption
 
-    # Patterns to REPLACE with '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝'
+    # Normalize the text to NFKD to make weird Unicode characters comparable
+    normalized = unicodedata.normalize("NFKD", caption)
+
     patterns_to_replace = [
-        r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
-        r'𝚂𝚝𝚞𝚋𝚋𝚘𝚛𝚗,? ?𝐎𐓣𝖾 𝐃𝖾𝗌𝗍𝗂𐓣α𝗍𝗂ⱺ𐓣[^\n🖤❤️]*',
-        r'One Destination[^\n🖤❤️]*',
-        r'\*?𝐎𝗇𝖾 𝐃𝖾𝗌𝗍𝗂𝗇𝖺𝗍𝗂𝗈𝗇\*?[^\n]*'
+        r'[𝐒𝚂𝗌𝖘𝘀𝒮𝑺𝓢𝕊Ȿ][^\n]{1,50}?[🖤❤️\n]*',  # Matches stylized text blocks with hearts
+        r'One[\s\-_.]*Destination[^\n🖤❤️]*',        # Matches normal or slightly modified "One Destination"
+        r'[𝐎𝘖𝙊𝓞𝕆𝗢𝑶𝖮𝔒𝒪][^\n]{1,50}?[🖤❤️\n]*',        # Another possible stylized variation
     ]
 
     for pattern in patterns_to_replace:
-        caption = re.sub(pattern, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', caption, flags=re.IGNORECASE)
+        normalized = re.sub(pattern, '𝗖𝗛𝗢𝗦𝗘𝗡 𝗢𝗡𝗘 ⚝', normalized, flags=re.IGNORECASE)
 
-    # Optional: Clean extra spacing or duplicate newlines if needed
-    caption = re.sub(r'\n\s*\n', '\n', caption).strip()
+    # Remove duplicate newlines and strip
+    cleaned = re.sub(r'\n\s*\n', '\n', normalized).strip()
 
-    return caption
+    return cleaned
+
 
 
 
