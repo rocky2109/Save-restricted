@@ -1151,34 +1151,67 @@ async def handle_large_file(file, sender, edit, caption):
         gc.collect()
         return
 
+import os
+import re
+import asyncio
+import unicodedata
+
+def strip_unicode_junk(text):
+    if not text:
+        return text
+
+    # Normalize to separate characters and accents
+    text = unicodedata.normalize("NFKD", text)
+
+    # Remove emojis and stylized letters or symbols
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"
+        u"\U0001F300-\U0001F5FF"
+        u"\U0001F680-\U0001F6FF"
+        u"\U0001F1E0-\U0001F1FF"
+        u"\u2600-\u26FF"
+        u"\u2700-\u27BF"
+        "]+", flags=re.UNICODE)
+    text = emoji_pattern.sub('', text)
+
+    # Remove all non-ASCII characters
+    text = re.sub(r'[^\x00-\x7F]+', '', text)
+    
+    # Normalize extra whitespace or dashes
+    text = re.sub(r'[_\s\-]+', ' ', text).strip()
+
+    return text
+
+# 🎯 Final Rename Function with Cleaning
 async def rename_file(file, sender):
     delete_words = load_delete_words(sender)
     replacements = load_replacement_words(sender)
     custom_rename_tag = get_user_rename_preference(sender)
 
-    # Extract base name and extension
+    # Split filename and extension
     base_name, ext = os.path.splitext(file)
     ext = ext if ext and len(ext) <= 6 else ".mp4"
+    base_name = os.path.basename(base_name)
 
-    base_name = os.path.basename(base_name)  # Only filename without path
-
-    # ✅ Replace @mention with @Real_Pirates
+    # Replace @mention with bot tag
     base_name = re.sub(r'@\w+', '@Src_pro_bot', base_name)
 
-    # 🔁 Apply custom word deletion
+    # Apply delete words
     for word in delete_words:
         base_name = base_name.replace(word, "")
 
-    # 🔁 Apply replacement words
+    # Apply replacement rules
     for word, replace_word in replacements.items():
         base_name = base_name.replace(word, replace_word)
 
-    # ✅ Final new filename with tag and extension
-    new_file_name = f"{base_name} {custom_rename_tag}{ext}"
+    # 🔥 Clean junk characters and emojis
+    base_name = strip_unicode_junk(base_name)
 
-    # Rename the actual file
+    # Final file name
+    new_file_name = f"{base_name} {custom_rename_tag}{ext}".strip()
+
+    # Rename file
     await asyncio.to_thread(os.rename, file, new_file_name)
-
     return new_file_name
 
 
