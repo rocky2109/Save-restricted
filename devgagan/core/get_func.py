@@ -1204,6 +1204,9 @@ async def rename_file(file, sender):
 
     # 🔥 Remove styled junk characters & emojis
     base_name = strip_unicode_junk(base_name)
+    # Remove trailing single underscore (if exists) after stripping junk
+    base_name = re.sub(r'_+$', '', base_name)
+
 
     # Final new file name
     new_file_name = f"{base_name.strip()} {custom_rename_tag}{ext}".strip()
