@@ -87,7 +87,7 @@ from pyrogram.types import Message
 import asyncio
 
 # Replace this with your channel's numeric ID
-CHANNEL_ID = -1002523074292
+CHANNEL_ID = -1002666238483
 
 # Store last pinned message ID to avoid repinning the same image
 last_pinned_photo = {}
