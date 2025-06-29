@@ -81,6 +81,33 @@ def format_caption_to_html(caption: str) -> str:
     
     return caption.strip()
 
+
+from pyrogram import Client, filters
+from pyrogram.types import Message
+import asyncio
+
+# Replace this with your channel's numeric ID
+CHANNEL_ID = -1002523074292
+
+# Store last pinned message ID to avoid repinning the same image
+last_pinned_photo = {}
+
+@app.on_message(filters.channel & filters.photo & filters.chat(CHANNEL_ID))
+async def auto_pin_new_photo(client: Client, message: Message):
+    try:
+        chat_id = message.chat.id
+
+        # Avoid re-pinning same message
+        if last_pinned_photo.get(chat_id) == message.id:
+            return
+
+        await message.pin(disable_notification=True)
+        last_pinned_photo[chat_id] = message.id
+
+        print(f"📌 Pinned new image in channel {chat_id} (Message ID: {message.id})")
+    except Exception as e:
+        print(f"❌ Failed to pin image: {e}")
+
     
 
 from pyrogram.enums import ParseMode
