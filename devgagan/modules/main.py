@@ -168,79 +168,60 @@ from pyrogram.types import InputMediaPhoto
 
 @app.on_message(filters.command("batch") & filters.private)
 async def batch_link(_, message):
-    # Check subscription
     join = await subscribe(_, message)
     if join == 1:
         return
-    
     user_id = message.chat.id
-    
-    # Check for existing batch process
+    # Check if a batch process is already running
     if users_loop.get(user_id, False):
-        await message.reply_photo(
-            photo="https://i.postimg.cc/BXkchVpY/image.jpg",
-            caption="⏳ **Batch Process Already Running**\n\n"
-                   "You already have a batch process in progress. "
-                   "Please wait for it to complete before starting a new one."
+        await app.send_message(
+            message.chat.id,
+            "You already have a batch process running. Please wait for it to complete."
         )
         return
 
-    # Check user privileges
     freecheck = await chk_user(message, user_id)
     if freecheck == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
-        await message.reply_photo(
-            photo="https://i.postimg.cc/BXkchVpY/image.jpg",
-            caption="🔒 **Premium Access Required**\n\n"
-                   "Freemium service is currently not available.\n"
-                   "Upgrade to premium to access batch processing."
-        )
+        await message.reply("Freemium service is currently not available. Upgrade to premium for access.")
         return
 
     max_batch_size = FREEMIUM_LIMIT if freecheck == 1 else PREMIUM_LIMIT
 
-    # Send welcome message with image
-    welcome_msg = await message.reply_photo(
-        photo="https://i.postimg.cc/BXkchVpY/image.jpg",
-        caption=f"📦 **Single Link Processing**\n\n"
-               f"Please send the Telegram message link you want to process\n\n"
-               f"⚡ **Batch Limit:** {max_batch_size} files\n"
-               f"🔄 You have **3 attempts** to provide a valid link"
-    )
-
-    # Get single link
+    # Start link input
     for attempt in range(3):
-        link_msg = await app.ask(
-            chat_id=message.chat.id,
-            text=f"🔗 **Attempt {attempt+1}/3**\n"
-                 "Please send the message link you want to process:",
-            reply_to_message_id=welcome_msg.id,
-            filters=filters.text
+    # Send image with caption
+        await app.send_photo(
+            message.chat.id,
+            photo="https://i.postimg.cc/BXkchVpY/image.jpg",  # Replace with your image URL
+            caption="Just Copy Post Link And Send it To Me.\n\nMake sure the link is correct!"
         )
-        
-        try:
-            link = link_msg.text.strip()
-            message_id = int(link.split("/")[-1])
+        start = await app.ask(message.chat.id, "🎯 Send the The First Post link.\n\n> You Have Only 3 Tries")
+        start_id = start.text.strip()
+        s = start_id.split("/")[-1]
+        if s.isdigit():
+            cs = int(s)
             break
-        except (ValueError, IndexError, AttributeError):
-            if attempt < 2:
-                await link_msg.reply("❌ Invalid link format. Please send a valid Telegram message link.\nExample: `https://t.me/c/123456789/123`")
-            else:
-                await message.reply_photo(
-                    photo="https://i.postimg.cc/BXkchVpY/image.jpg",
-                    caption="🚫 **Maximum Attempts Reached**\n\n"
-                           "You've exceeded the maximum attempts for providing a link.\n"
-                           "Please try the command again later."
-                )
-                return
+        await app.send_message(message.chat.id, "Invalid link. Please send again ...")
+    else:
+        await app.send_message(message.chat.id, "Maximum attempts exceeded. Try later.")
+        return
 
-    # Proceed with processing
-    await message.reply_photo(
-        photo="https://i.postimg.cc/BXkchVpY/image.jpg",
-        caption=f"⚡ **Processing Started**\n\n"
-               f"• Message ID: `{message_id}`\n\n"
-               f"Please wait while I process your request..."
-    )
-
+    # Number of messages input
+    for attempt in range(3):
+        num_messages = await app.ask(message.chat.id, f"How many messages do you want to process? 🌝\n> Max limit {max_batch_size}")
+        try:
+            cl = int(num_messages.text.strip())
+            if 1 <= cl <= max_batch_size:
+                break
+            raise ValueError()
+        except ValueError:
+            await app.send_message(
+                message.chat.id, 
+                f"Invalid number. Please enter a number between 1 and {max_batch_size}."
+            )
+    else:
+        await app.send_message(message.chat.id, "Maximum attempts exceeded. Try later.")
+        return
     
 
     # Validate and interval check
