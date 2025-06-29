@@ -1151,38 +1151,23 @@ async def handle_large_file(file, sender, edit, caption):
         gc.collect()
         return
 
+import asyncio
 import os
 import re
-import asyncio
 import unicodedata
 
-def strip_unicode_junk(text):
-    if not text:
-        return text
+# This removes fancy styled letters, symbols, emojis
+def strip_unicode_junk(text: str) -> str:
+    clean = []
+    for char in text:
+        name = unicodedata.name(char, "")
+        if any(sub in name for sub in ["MATHEMATICAL", "CIRCLED", "SQUARED", "FULLWIDTH", "FANCY", "DOUBLE-STRUCK", "BOLD", "ITALIC", "SCRIPT", "BLACK", "FRAKTUR", "MONOSPACE", "TAG", "REGIONAL INDICATOR", "ENCLOSED"]) or \
+           "EMOJI" in name or "HEART" in name or "ORNAMENT" in name or "SYMBOL" in name or "ARABIC" in name or "BRAILLE" in name or "MODIFIER" in name:
+            continue  # Remove stylized/fancy/emoji chars
+        clean.append(char)
+    return ''.join(clean)
 
-    # Normalize to separate characters and accents
-    text = unicodedata.normalize("NFKD", text)
 
-    # Remove emojis and stylized letters or symbols
-    emoji_pattern = re.compile("["
-        u"\U0001F600-\U0001F64F"
-        u"\U0001F300-\U0001F5FF"
-        u"\U0001F680-\U0001F6FF"
-        u"\U0001F1E0-\U0001F1FF"
-        u"\u2600-\u26FF"
-        u"\u2700-\u27BF"
-        "]+", flags=re.UNICODE)
-    text = emoji_pattern.sub('', text)
-
-    # Remove all non-ASCII characters
-    text = re.sub(r'[^\x00-\x7F]+', '', text)
-    
-    # Normalize extra whitespace or dashes
-    text = re.sub(r'[_\s\-]+', ' ', text).strip()
-
-    return text
-
-# 🎯 Final Rename Function with Cleaning
 async def rename_file(file, sender):
     delete_words = load_delete_words(sender)
     replacements = load_replacement_words(sender)
@@ -1204,13 +1189,13 @@ async def rename_file(file, sender):
     for word, replace_word in replacements.items():
         base_name = base_name.replace(word, replace_word)
 
-    # 🔥 Clean junk characters and emojis
+    # 🔥 Remove styled junk characters & emojis
     base_name = strip_unicode_junk(base_name)
 
-    # Final file name
-    new_file_name = f"{base_name} {custom_rename_tag}{ext}".strip()
+    # Final new file name
+    new_file_name = f"{base_name.strip()} {custom_rename_tag}{ext}".strip()
 
-    # Rename file
+    # Rename the file
     await asyncio.to_thread(os.rename, file, new_file_name)
     return new_file_name
 
