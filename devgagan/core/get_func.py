@@ -1202,14 +1202,15 @@ async def rename_file(file, sender):
     for word, replace_word in replacements.items():
         base_name = base_name.replace(word, replace_word)
 
-    # 🔥 Remove styled junk characters & emojis
+    # 🔥 Clean junk characters and emojis
     base_name = strip_unicode_junk(base_name)
-    # Remove trailing single underscore (if exists) after stripping junk
-    base_name = re.sub(r'_+$', '', base_name)
 
+# 🧹 Remove trailing junk and single underscore
+    base_name = re.sub(r'[\W_]*_$', '', base_name)
 
-    # Final new file name
-    new_file_name = f"{base_name.strip()} {custom_rename_tag}{ext}".strip()
+# 📁 Final file name
+    new_file_name = f"{base_name} {custom_rename_tag}{ext}".strip()
+
 
     # Rename the file
     await asyncio.to_thread(os.rename, file, new_file_name)
