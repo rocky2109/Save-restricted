@@ -1156,16 +1156,29 @@ import os
 import re
 import unicodedata
 
-# This removes fancy styled letters, symbols, emojis
+# This removes fancy styled letters, symbols, emoji
+
+
 def strip_unicode_junk(text: str) -> str:
     clean = []
     for char in text:
         name = unicodedata.name(char, "")
-        if any(sub in name for sub in ["MATHEMATICAL", "CIRCLED", "SQUARED", "FULLWIDTH", "FANCY", "DOUBLE-STRUCK", "BOLD", "ITALIC", "SCRIPT", "BLACK", "FRAKTUR", "MONOSPACE", "TAG", "REGIONAL INDICATOR", "ENCLOSED"]) or \
-           "EMOJI" in name or "HEART" in name or "ORNAMENT" in name or "SYMBOL" in name or "ARABIC" in name or "BRAILLE" in name or "MODIFIER" in name:
-            continue  # Remove stylized/fancy/emoji chars
+        codepoint = ord(char)
+
+        if (
+            any(sub in name for sub in [
+                "MATHEMATICAL", "CIRCLED", "SQUARED", "FULLWIDTH", "DOUBLE-STRUCK", "BOLD",
+                "ITALIC", "SCRIPT", "BLACK", "FRAKTUR", "MONOSPACE", "TAG", "ENCLOSED",
+                "HEART", "SYMBOL", "ORNAMENT", "MODIFIER", "DINGBAT", "BRAILLE", "EMOJI", "INDICATOR"
+            ])
+            or 0x13000 <= codepoint <= 0x1342F   # Egyptian Hieroglyphs
+            or 0x1F000 <= codepoint <= 0x1FAFF   # Extended emoji/symbols
+        ):
+            continue  # skip fancy/unwanted characters
+
         clean.append(char)
     return ''.join(clean)
+
 
 
 async def rename_file(file, sender):
