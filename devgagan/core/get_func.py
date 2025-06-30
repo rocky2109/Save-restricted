@@ -38,7 +38,8 @@ from devgagantools import fast_upload
 from datetime import datetime
 
 def thumbnail(sender):
-    return f'{sender}.jpg' if os.path.exists(f'{sender}.jpg') else None
+    path = f'thumbnails/{sender}.jpg'
+    return path if os.path.exists(path) else None
 
 # MongoDB database name and collection name
 DB_NAME = "smart_users"
@@ -488,25 +489,41 @@ def get_message_file_size(msg):
     return 1
 
 
-
 async def get_final_caption(msg, sender):
+    # Get original caption in markdown if available
     original_caption = msg.caption.markdown if msg.caption else ""
     
-    # Append custom caption
+    # Add custom caption if present
     custom_caption = get_user_caption_preference(sender)
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
-    # Replace @mentions
-    final_caption = re.sub(r'@\w+', '@II_LevelUP_II', final_caption)
+    # Replace @mentions with @II_LevelUP_II (preserves markdown)
+    final_caption = re.sub(
+        r'(\[([^\]]+)\]\(tg://user\?id=\d+\)|@\w+)', 
+        '[@II_LevelUP_II](https://t.me/II_LevelUP_II)', 
+        final_caption
+    )
 
-    # Replace links
-    final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/II_Way_to_Success_II', final_caption)
+    # Replace all links but keep original text
+    def replace_link(match):
+        # If it's a markdown link [text](url)
+        if match.group(1):
+            return f'[{match.group(2)}](https://t.me/II_Way_to_Success_II)'
+        # If it's a plain URL
+        return '[Link](https://t.me/II_Way_to_Success_II)'
+    
+    final_caption = re.sub(
+        r'\[([^\]]+)\]\(https?://[^\)]+\)|https?://\S+|www\.\S+', 
+        replace_link, 
+        final_caption
+    )
 
-    # Custom keyword/phrase replacements
+    # Perform additional replacements from user-defined rules
     replacements = load_replacement_words(sender)
     for word, replace_word in replacements.items():
         final_caption = final_caption.replace(word, replace_word)
 
+    
     # ✨ Stylized & promo line cleanup
     final_caption = re.sub(
         r'𝐒𝗍ⱺ𝗅𝖾𐓣 𝐇𝖺𝗉𝗉𝗂𐓣𝖾𝗌𝗌[^\n🖤❤️]*',
@@ -984,53 +1001,31 @@ async def callback_query_handler(event):
     
     
 
-import os
-from telethon import events
-
-# Dictionary to keep track of pending thumbnail requests
-pending_photos = {}
+THUMBNAIL_DIR = "thumbnails"
+os.makedirs(THUMBNAIL_DIR, exist_ok=True)
 
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
 async def save_thumbnail(event):
     user_id = event.sender_id
-    thumb_dir = "./thumbnails"  # Directory to store thumbnails
-    
-    # Create thumbnails directory if it doesn't exist
-    if not os.path.exists(thumb_dir):
-        os.makedirs(thumb_dir)
-    
-    user_thumb = f"{thumb_dir}/{user_id}.jpg"
 
     if event.photo:
         try:
-            # Download the photo
             temp_path = await event.download_media()
-            
-            # Remove old thumbnail if exists
-            if os.path.exists(user_thumb):
-                os.remove(user_thumb)
-            
-            # Save new thumbnail
-            os.rename(temp_path, user_thumb)
-            
-            await event.respond("✅ Thumbnail saved successfully!\n"
-                              "It will be used for all your future uploads.")
-            
-        except Exception as e:
-            await event.respond(f"❌ Error saving thumbnail: {str(e)}")
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-    
-    else:
-        # Check if user already has a saved thumbnail
-        if os.path.exists(user_thumb):
-            await event.respond("📸 You already have a thumbnail set.\n"
-                              "Send a new photo to update it or /cancel to keep current one.")
-        else:
-            await event.respond("📸 Please send a photo to set as your thumbnail...")
+            final_path = os.path.join(THUMBNAIL_DIR, f"{user_id}.jpg")
 
-    # Remove user from pending photos dictionary
+            if os.path.exists(final_path):
+                os.remove(final_path)
+
+            os.rename(temp_path, final_path)
+
+            await event.respond("✅ Thumbnail saved and will be used in all future uploads.")
+        except Exception as e:
+            await event.respond(f"❌ Failed to save thumbnail: {e}")
+    else:
+        await event.respond("⚠️ Please send a valid photo...")
+
     pending_photos.pop(user_id, None)
+
 
 def save_user_upload_method(user_id, method):
     # Save or update the user's preferred upload method
