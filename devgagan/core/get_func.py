@@ -984,21 +984,52 @@ async def callback_query_handler(event):
     
     
 
+import os
+from telethon import events
+
+# Dictionary to keep track of pending thumbnail requests
+pending_photos = {}
+
 @gf.on(events.NewMessage(func=lambda e: e.sender_id in pending_photos))
 async def save_thumbnail(event):
-    user_id = event.sender_id  # Use event.sender_id as user_id
+    user_id = event.sender_id
+    thumb_dir = "./thumbnails"  # Directory to store thumbnails
+    
+    # Create thumbnails directory if it doesn't exist
+    if not os.path.exists(thumb_dir):
+        os.makedirs(thumb_dir)
+    
+    user_thumb = f"{thumb_dir}/{user_id}.jpg"
 
     if event.photo:
-        temp_path = await event.download_media()
-        if os.path.exists(f'{user_id}.jpg'):
-            os.remove(f'{user_id}.jpg')
-        os.rename(temp_path, f'./{user_id}.jpg')
-        await event.respond('Thumbnail saved successfully!')
-
+        try:
+            # Download the photo
+            temp_path = await event.download_media()
+            
+            # Remove old thumbnail if exists
+            if os.path.exists(user_thumb):
+                os.remove(user_thumb)
+            
+            # Save new thumbnail
+            os.rename(temp_path, user_thumb)
+            
+            await event.respond("✅ Thumbnail saved successfully!\n"
+                              "It will be used for all your future uploads.")
+            
+        except Exception as e:
+            await event.respond(f"❌ Error saving thumbnail: {str(e)}")
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+    
     else:
-        await event.respond('Please send a photo... Retry')
+        # Check if user already has a saved thumbnail
+        if os.path.exists(user_thumb):
+            await event.respond("📸 You already have a thumbnail set.\n"
+                              "Send a new photo to update it or /cancel to keep current one.")
+        else:
+            await event.respond("📸 Please send a photo to set as your thumbnail...")
 
-    # Remove user from pending photos dictionary in both cases
+    # Remove user from pending photos dictionary
     pending_photos.pop(user_id, None)
 
 def save_user_upload_method(user_id, method):
