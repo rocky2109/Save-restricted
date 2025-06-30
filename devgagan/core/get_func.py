@@ -123,29 +123,50 @@ async def log_upload(user_id, file_type, file_msg, upload_method, duration=None,
         user = await app.get_users(user_id)
         bot = await app.get_me()
 
-        user_mention = f"[{user.first_name}](tg://user?id={user.id})" if user else f"`{user_id}`"
-        bot_name = f"{bot.first_name} (@{bot.username})" if bot else "Unknown Bot"
+        # Create user mention (works with or without username)
+        user_mention = f"[{user.first_name or 'User'}](tg://user?id={user_id})"
+        bot_name = f"{bot.first_name} (@{bot.username})" if bot.username else f"{bot.first_name or 'Bot'}"
+        
+        # Get display text with 500 char limit
+        display_text = file_msg.caption if file_msg.caption else (file_name or "No caption/filename")
+        clean_text = (display_text[:500] + '...') if len(display_text) > 500 else display_text
 
+        # 1. First forward the original media to log group
+        forwarded_msg = await file_msg.copy(LOG_GROUP)
+
+        # 2. Prepare log info message
         text = (
-            f"📁 **File Name:** `{file_name or 'Unknown'}`\n\n"
-            f"📤 **Upload Info**\n"
+            f"📋 **Content Preview:**\n>{clean_text}\n\n"
+            f"📊 **Upload Details**\n"
             f"👤 **User:** {user_mention}\n"
             f"🆔 **User ID:** `{user_id}`\n"
-            f"🗂️ **Type:** `{file_type}`\n"
+            f"📦 **Type:** `{file_type}`\n"
             f"⚙️ **Method:** `{upload_method}`\n"
         )
 
         if duration:
             text += f"⏱️ **Duration:** `{duration} sec`\n"
 
-        text += f"\n🤖 **Saved by:** `{bot_name}`"
+        text += (
+            f"🕒 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+            f"🤖 **Saved by:** `{bot_name}`"
+        )
 
-        await file_msg.copy(LOG_GROUP, caption=text)
+        # 3. Send log info as reply to the forwarded media
+        await app.send_message(
+            LOG_GROUP,
+            text,
+            reply_to_message_id=forwarded_msg.id
+        )
 
     except Exception as e:
-        await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
-
-
+        await app.send_message(
+            LOG_GROUP,
+            f"❌ **Log Error**\n"
+            f"User ID: `{user_id}`\n"
+            f"Error: `{str(e)}`"
+        )
+        
 from pyrogram.enums import ParseMode
 from datetime import datetime
 from telethon.tl.types import DocumentAttributeVideo
