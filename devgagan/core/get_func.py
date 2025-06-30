@@ -118,54 +118,7 @@ from telethon.tl.types import DocumentAttributeVideo
 
 # Log upload to LOG_GROUP with user info
 # Log upload to LOG_GROUP with user info
-async def log_upload(user_id, file_type, file_msg, upload_method, duration=None, file_name=None):
-    try:
-        user = await app.get_users(user_id)
-        bot = await app.get_me()
 
-        # Create user mention (works with or without username)
-        user_mention = f"[{user.first_name or 'User'}](tg://user?id={user_id})"
-        bot_name = f"{bot.first_name} (@{bot.username})" if bot.username else f"{bot.first_name or 'Bot'}"
-        
-        # Get display text with 500 char limit
-        display_text = file_msg.caption if file_msg.caption else (file_name or "No caption/filename")
-        clean_text = (display_text[:500] + '...') if len(display_text) > 500 else display_text
-
-        # 1. First forward the original media to log group
-        forwarded_msg = await file_msg.copy(LOG_GROUP)
-
-        # 2. Prepare log info message
-        text = (
-            f"📋 **Content Preview:**\n>{clean_text}\n\n"
-            f"📊 **Upload Details**\n"
-            f"👤 **User:** {user_mention}\n"
-            f"🆔 **User ID:** `{user_id}`\n"
-            f"📦 **Type:** `{file_type}`\n"
-            f"⚙️ **Method:** `{upload_method}`\n"
-        )
-
-        if duration:
-            text += f"⏱️ **Duration:** `{duration} sec`\n"
-
-        text += (
-            f"🕒 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
-            f"🤖 **Saved by:** `{bot_name}`"
-        )
-
-        # 3. Send log info as reply to the forwarded media
-        await app.send_message(
-            LOG_GROUP,
-            text,
-            reply_to_message_id=forwarded_msg.id
-        )
-
-    except Exception as e:
-        await app.send_message(
-            LOG_GROUP,
-            f"❌ **Log Error**\n"
-            f"User ID: `{user_id}`\n"
-            f"Error: `{str(e)}`"
-        )
         
 from pyrogram.enums import ParseMode
 from datetime import datetime
@@ -205,18 +158,69 @@ async def clean_caption(caption):
 
 
 
+async def log_upload(user_id, file_type, file_msg, upload_method, duration=None, file_name=None):
+    try:
+        user = await app.get_users(user_id)
+        bot = await app.get_me()
+
+        user_mention = f"[{user.first_name or 'User'}](tg://user?id={user_id})"
+        bot_name = f"{bot.first_name} (@{bot.username})" if bot else "Unknown Bot"
+        display_text = file_msg.caption if file_msg.caption else (file_name or "No caption/filename")
+        # Clean and truncate the text
+        clean_text = (display_text[:1000] + '...') if len(display_text) > 1000 else display_text
+        text = (
+            f">{clean_text}\n\n"
+            f"📤 **Upload Info**\n"
+            f"👤 **User:** {user_mention}\n"
+            f"🆔 **User ID:** `{user_id}`\n"
+            f"🗂️ **Type:** `{file_type}`\n"
+            f"⚙️ **Method:** `{upload_method}`\n"
+            f"🕒 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+        )
+
+        if duration:
+            text += f"⏱️ **Duration:** `{duration} sec`\n"
+
+        text += f"\n🤖 **Saved by:** `{bot_name}`"
+
+        await file_msg.copy(LOG_GROUP, caption=text)
+
+    except Exception as e:
+        await app.send_message(LOG_GROUP, f"❌ Log Error: `{e}`")
+
+# Upload handler
+import os
+import re
+import gc
+import time
+import asyncio
+import unicodedata
+from datetime import datetime
+from pyrogram.enums import ParseMode
+from telethon.tl.types import DocumentAttributeVideo
+
+# Clean filename helper
+def clean_filename(text):
+    if not text:
+        return "file"
+    # Normalize unicode and strip non-ASCII
+    text = unicodedata.normalize("NFKD", text)
+    text = re.sub(r'[^\w\s.-]', '', text)  # Remove special chars/emojis
+    text = re.sub(r'[_\s\-]+', ' ', text)  # Normalize spacing
+    return text.strip()
+
+# Upload handler
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
-        # Clean the caption before uploading
-        cleaned_caption = await clean_caption(caption)
-        
         upload_method = await fetch_upload_method(sender)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
         thumb_path = await screenshot(file, duration, sender)
 
         ext = file.split('.')[-1].lower()
-        file_name = os.path.basename(file)
+        raw_name = os.path.basename(file)
+        clean_name = clean_filename(os.path.splitext(raw_name)[0])
+        file_name = f"{clean_name}.{ext}"
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         image_formats = {'jpg', 'png', 'jpeg'}
@@ -228,7 +232,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_video(
                     chat_id=target_chat_id,
                     video=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     height=height,
                     width=width,
                     duration=duration,
@@ -245,7 +249,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_photo(
                     chat_id=target_chat_id,
                     photo=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     parse_mode=ParseMode.MARKDOWN,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
@@ -258,7 +262,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 dm = await app.send_document(
                     chat_id=target_chat_id,
                     document=file,
-                    caption=cleaned_caption,
+                    caption=caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
                     parse_mode=ParseMode.MARKDOWN,
@@ -272,12 +276,12 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         elif upload_method == "Telethon":
             await edit.delete()
             progress_message = await gf.send_message(sender, "**__Uploading...__**")
-            caption_html = await format_caption_to_html(cleaned_caption)
+            caption_html = await format_caption_to_html(caption)
 
             uploaded = await fast_upload(
                 gf, file,
                 reply=progress_message,
-                name=huu,
+                name=file_name,
                 progress_bar_function=lambda done, total: progress_callback(done, total, sender)
             )
             await progress_message.delete()
@@ -286,6 +290,21 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 DocumentAttributeVideo(duration=duration, w=width, h=height, supports_streaming=True)
             ] if ext in video_formats else []
 
+            bot = await app.get_me()
+            bot_name = f"{bot.first_name} (@{bot.username})" if bot else "Bot"
+
+            log_caption = (
+                f"📁 **File Name:** {file_name}\n\n"
+                f"📤 **Upload Info**\n"
+                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
+                f"🆔 **User ID:** `{sender}`\n"
+                f"🗂️ **Type:** `{ext.upper()}`\n"
+                f"⚙️ **Method:** `Telethon`\n"
+                f"⏱️ **Duration:** `{duration} sec`\n"
+                f"🕒 **Time:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                f"🤖 **Saved by:** {bot_name}"
+            )
+
             await gf.send_file(
                 target_chat_id,
                 uploaded,
@@ -293,21 +312,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 attributes=attributes,
                 reply_to=topic_id,
                 thumb=thumb_path
-            )
-
-            bot = await app.get_me()
-            bot_name = f"{bot.first_name} (@{bot.username})" if bot else "Bot"
-
-            log_caption = (
-                f"📁 **File Name:** `{file_name}`\n\n"
-                f"📤 **Upload Info**\n"
-                f"👤 **User:** [{sender}](tg://user?id={sender})\n"
-                f"🆔 **User ID:** `{sender}`\n"
-                f"🗂️ **Type:** `{ext.upper()}`\n"
-                f"⚙️ **Method:** `Telethon`\n"
-                f"⏱️ **Duration:** `{duration} sec`\n"
-                f"🕒 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
-                f"🤖 **Saved by:** `{bot_name}`"
             )
 
             await gf.send_file(
