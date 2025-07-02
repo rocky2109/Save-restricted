@@ -414,7 +414,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         #     return
 
         file_name = await get_media_filename(msg)
-        edit = await app.edit_message_text(sender, edit_id, "**Downloading...**")
+        edit = await app.edit_message_text(sender, edit_id, "**>Downloading...Darling 😉**")
 
         # Download media
         file = await userbot.download_media(
@@ -686,6 +686,7 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
         if file and os.path.exists(file):
             os.remove(file)
 
+
 async def send_media_message(app, target_chat_id, msg, caption, topic_id):
     try:
         file_name = None
@@ -711,7 +712,7 @@ async def send_media_message(app, target_chat_id, msg, caption, topic_id):
         elif caption:
             caption = "\n".join([f"> {line}" for line in caption.strip().splitlines()])
         else:
-            caption = "📥"
+            caption = ">II_LevelUP_II"
 
         # Send the message with the right method
         if msg.video:
