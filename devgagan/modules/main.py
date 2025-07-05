@@ -230,8 +230,23 @@ async def batch_link(_, message):
         await message.reply(response_message)
         return
         
-    join_button = InlineKeyboardButton("Join Channel", url="https://t.me/II_Way_to_Success_II")
-    keyboard = InlineKeyboardMarkup([[join_button]])
+    # Simple and effective share button
+    share_button = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "🔗 Share Bot", 
+                    url="https://t.me/share/url?url=https://t.me/your_bot_username&text=Check%20out%20this%20awesome%20bot%20%F0%9F%94%A5"
+                )
+            ]
+        ]
+    )
+
+    # Usage example:
+    await message.reply(
+        text="Like this bot? Share it with friends!",
+        reply_markup=share_button
+    )
     pin_msg = await app.send_message(
         user_id,
         f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by CHOSEN ONE ⚝**",
@@ -309,10 +324,34 @@ async def stop_batch(_, message):
     elif user_id in users_loop and not users_loop[user_id]:
         await app.send_message(
             message.chat.id, 
-            "The batch process was already stopped. No active batch to cancel."
+            "The batch process was already stopped. You Ca Start New /batch now"
         )
     else:
         await app.send_message(
             message.chat.id, 
             "No active batch processing is running to cancel."
+           
     )
+
+# 🔗 /sharelink command
+@app.on_message(filters.command("sharelink"))
+async def sharelink_handler(client, message: Message):
+    bot = await client.get_me()
+    bot_username = bot.username
+
+    bot_link = f"https://t.me/{bot_username}?start=True"
+    share_link = f"https://t.me/share/url?url={bot_link}&text=🚀%20Check%20out%20this%20awesome%20bot%20to%20unlock%20restricted%20Telegram%20media!%20Try%20now%20👉"
+
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🤖 Open Bot", url=bot_link)],
+        [InlineKeyboardButton("📤 Share with Friends", url=share_link)]
+    ])
+
+    await message.reply_text(
+        f"✨ **Spread the Magic!**\n\n"
+        f"Help others discover this bot that can save **restricted channel media**, even if forwarding is off! 🔒\n\n"
+        f"Click a button below 👇 to open or share this bot with your friends!",
+        reply_markup=reply_markup
+    )
+
+# ---------------------------------------------------
