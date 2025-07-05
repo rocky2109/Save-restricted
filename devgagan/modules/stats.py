@@ -104,3 +104,96 @@ async def sharelink_handler(client, message: Message):
         f"Click a button below 👇 to open or share this bot with your friends!",
         reply_markup=reply_markup
     )
+
+# ---------------------------------------------------
+
+@app.on_message(filters.command("ban") & filters.user(ADMINS))
+async def ban_user(client, message):
+    """Ban a user from using the bot"""
+    if len(message.command) < 2:
+        await message.reply("ℹ️ Usage: /ban <user_id> [reason] [days]\n\n"
+                          "Example:\n"
+                          "/ban 123456789 Spamming 7\n"
+                          "/ban 123456789 Permanent ban")
+        return
+
+    try:
+        user_id = int(message.command[1])
+        reason = " ".join(message.command[2:-1]) if len(message.command) > 3 else message.command[2] if len(message.command) > 2 else "Violation of terms"
+        days = int(message.command[-1]) if message.command[-1].isdigit() else 0
+
+        if user_id in ADMINS:
+            await message.reply("❌ Cannot ban an admin!")
+            return
+
+        if await UserDB.is_banned(user_id):
+            await message.reply("⚠️ This user is already banned")
+            return
+
+        await UserDB.ban_user(
+            user_id=user_id,
+            admin_id=message.from_user.id,
+            reason=reason,
+            days=days
+        )
+
+        duration = f"for {days} days" if days > 0 else "permanently"
+        response = (f"✅ User {user_id} has been banned {duration}.\n"
+                   f"📝 Reason: {reason}\n\n"
+                   f"🛡️ Banned by: {message.from_user.mention}")
+        
+        await message.reply(response)
+        
+    except Exception as e:
+        await message.reply(f"❌ Error: {str(e)}")
+
+@app.on_message(filters.command("unban") & filters.user(ADMINS))
+async def unban_user(client, message):
+    """Unban a user"""
+    if len(message.command) < 2:
+        await message.reply("ℹ️ Usage: /unban <user_id>")
+        return
+
+    try:
+        user_id = int(message.command[1])
+        
+        if not await UserDB.is_banned(user_id):
+            await message.reply("ℹ️ This user is not currently banned")
+            return
+
+        await UserDB.unban_user(user_id)
+        await message.reply(f"✅ User {user_id} has been unbanned successfully")
+
+    except Exception as e:
+        await message.reply(f"❌ Error: {str(e)}")
+
+@app.on_message(filters.command("baninfo") & filters.user(ADMINS))
+async def ban_info(client, message):
+    """Get ban information for a user"""
+    if len(message.command) < 2:
+        await message.reply("ℹ️ Usage: /baninfo <user_id>")
+        return
+
+    try:
+        user_id = int(message.command[1])
+        ban_info = await UserDB.get_ban_info(user_id)
+        
+        if not ban_info:
+            await message.reply("ℹ️ This user has no active bans")
+            return
+
+        ban_date = ban_info['ban_date'].strftime("%Y-%m-%d %H:%M:%S")
+        duration = f"{ban_info['days']} days" if ban_info['days'] > 0 else "Permanent"
+        unban_date = ban_info['unban_date'].strftime("%Y-%m-%d %H:%M:%S") if ban_info.get('unban_date') else "Never"
+        
+        response = (f"🔨 Ban Information for User {user_id}:\n\n"
+                   f"🛡️ Banned by: {ban_info['admin_id']}\n"
+                   f"📅 Ban Date: {ban_date}\n"
+                   f"⏳ Duration: {duration}\n"
+                   f"📅 Unban Date: {unban_date}\n"
+                   f"📝 Reason: {ban_info['reason']}")
+        
+        await message.reply(response)
+
+    except Exception as e:
+        await message.reply(f"❌ Error: {str(e)}")
