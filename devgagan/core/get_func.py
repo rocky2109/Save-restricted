@@ -65,18 +65,6 @@ else:
     pro = None
     print("STRING is not available. 'app' is set to None.")
 
-import subprocess
-
-def add_text_watermark(input_path, output_path, text, font_size=18, font_color='white', position='10:10'):
-    cmd = [
-        "ffmpeg",
-        "-i", input_path,
-        "-vf", f"drawtext=text='{text}':fontcolor={font_color}:fontsize={font_size}:x={position.split(':')[0]}:y={position.split(':')[1]}",
-        "-codec:a", "copy",
-        output_path,
-        "-y"
-    ]
-    subprocess.run(cmd, check=True)
     
 async def fetch_upload_method(user_id):
     """Fetch the user's preferred upload method."""
@@ -157,6 +145,8 @@ def clean_filename(text):
 
 
 # Upload handler
+from devgagan.core.func import add_text_watermark
+
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
         upload_method = await fetch_upload_method(sender)
@@ -177,7 +167,14 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
             if ext in video_formats:
                 # ---- WATERMARK STEP ----
                 watermarked_path = f"watermarked_{file_name}"
-                add_text_watermark(file, watermarked_path, "CHOSEN ONE ⚝")
+                add_text_watermark(
+                    input_path=file,
+                    output_path=watermarked_path,
+                    text="CHOSEN ONE ⚝",   # Change this to whatever you want as your watermark
+                    font_size=18,
+                    font_color='white',
+                    position='10:10'
+                )
                 file_to_upload = watermarked_path
                 # ------------------------
                 file_type = "Video"
@@ -223,7 +220,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 )
                 await asyncio.sleep(2)
                 await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
-        # ... rest of your Telethon upload code ...
+        # ...rest of your Telethon upload code...
 
         # ────── Telethon Upload ──────
         elif upload_method == "Telethon":
