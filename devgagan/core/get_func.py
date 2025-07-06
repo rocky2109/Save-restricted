@@ -36,6 +36,7 @@ from devgagan.core.mongo import db as odb
 from telethon import TelegramClient, events, Button
 from devgagantools import fast_upload
 from datetime import datetime
+from devgagan.core.func import add_text_watermark
 
 def thumbnail(sender):
     path = os.path.join(THUMBNAIL_DIR, f"{sender}.jpg")
@@ -63,6 +64,19 @@ if STRING:
 else:
     pro = None
     print("STRING is not available. 'app' is set to None.")
+
+import subprocess
+
+def add_text_watermark(input_path, output_path, text, font_size=18, font_color='white', position='10:10'):
+    cmd = [
+        "ffmpeg",
+        "-i", input_path,
+        "-vf", f"drawtext=text='{text}':fontcolor={font_color}:fontsize={font_size}:x={position.split(':')[0]}:y={position.split(':')[1]}",
+        "-codec:a", "copy",
+        output_path,
+        "-y"
+    ]
+    subprocess.run(cmd, check=True)
     
 async def fetch_upload_method(user_id):
     """Fetch the user's preferred upload method."""
@@ -161,10 +175,15 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         # ────── Pyrogram Upload ──────
         if upload_method == "Pyrogram":
             if ext in video_formats:
+                # ---- WATERMARK STEP ----
+                watermarked_path = f"watermarked_{file_name}"
+                add_text_watermark(file, watermarked_path, "CHOSEN ONE ⚝")
+                file_to_upload = watermarked_path
+                # ------------------------
                 file_type = "Video"
                 dm = await app.send_video(
                     chat_id=target_chat_id,
-                    video=file,
+                    video=file_to_upload,
                     caption=caption,
                     height=height,
                     width=width,
