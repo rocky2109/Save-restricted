@@ -22,6 +22,20 @@ import cv2
 from pyrogram.errors import FloodWait, InviteHashInvalid, InviteHashExpired, UserAlreadyParticipant, UserNotParticipant
 from datetime import datetime as dt
 import asyncio, subprocess, re, os, time
+import subprocess
+
+def add_text_watermark(input_path, output_path, text, font_size=18, font_color='white', position='10:10'):
+    cmd = [
+        "ffmpeg",
+        "-i", input_path,
+        "-vf", f"drawtext=text='{text}':fontcolor={font_color}:fontsize={font_size}:x={position.split(':')[0]}:y={position.split(':')[1]}",
+        "-codec:a", "copy",
+        output_path,
+        "-y"
+    ]
+    subprocess.run(cmd, check=True)
+
+
 async def chk_user(message, user_id):
     user = await premium_users()
     if user_id in user or user_id in OWNER_ID:
