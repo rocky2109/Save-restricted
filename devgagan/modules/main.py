@@ -164,9 +164,6 @@ async def process_special_links(userbot, user_id, msg, link):
     else:
         await msg.edit_text("Invalid link format.")
 
-
-from pyrogram.types import InputMediaPhoto
-
 @app.on_message(filters.command("batch") & filters.private)
 async def batch_link(_, message):
     join = await subscribe(_, message)
@@ -194,9 +191,9 @@ async def batch_link(_, message):
         await app.send_photo(
             message.chat.id,
             photo="https://i.postimg.cc/BXkchVpY/image.jpg",  # Replace with your image URL
-            caption="Just Copy Post Link And Send it To Me.\n\nMake sure the link is correct!"
+            caption="Just Copy Post Link And Send it To Me.\n\nजहाँ से शुरू करना है उस पोस्ट का लिंक भेजो\n\nMake sure the link is correct!"
         )
-        start = await app.ask(message.chat.id, "🎯 Send the The First Post link.\n\n> You Have Only 3 Tries")
+        start = await app.ask(message.chat.id, "🎯 Send The Link For Where I Need To Start Process From \n\n> You Have Only 3 Tries")
         start_id = start.text.strip()
         s = start_id.split("/")[-1]
         if s.isdigit():
@@ -223,7 +220,6 @@ async def batch_link(_, message):
     else:
         await app.send_message(message.chat.id, "Maximum attempts exceeded. Try later.")
         return
-    
 
     # Validate and interval check
     can_proceed, response_message = await check_interval(user_id, freecheck)
@@ -231,23 +227,8 @@ async def batch_link(_, message):
         await message.reply(response_message)
         return
         
-    # Simple and effective share button
-    share_button = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    "🔗 Share Bot", 
-                    url="https://t.me/share/url?url=https://t.me/your_bot_username&text=Check%20out%20this%20awesome%20bot%20%F0%9F%94%A5"
-                )
-            ]
-        ]
-    )
-
-    # Usage example:
-    await message.reply(
-        text="Like this bot? Share it with friends!",
-        reply_markup=share_button
-    )
+    join_button = InlineKeyboardButton("Join Channel", url="https://t.me/II_Way_to_Success_II")
+    keyboard = InlineKeyboardMarkup([[join_button]])
     pin_msg = await app.send_message(
         user_id,
         f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by CHOSEN ONE ⚝**",
@@ -279,7 +260,7 @@ async def batch_link(_, message):
                 f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by CHOSEN ONE ⚝__**",
                 reply_markup=keyboard
             )
-            await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
+            await app.send_message(message.chat.id, "😘 𝗖ꪮ𝗺𝗽𝗹𝗲𝘁𝗲 𝗛ꪮ 𝗚𝗮𝘆𝗮 𝗕ꪮ$$ 😎")
             return
             
         # Handle special links with userbot
@@ -310,6 +291,7 @@ async def batch_link(_, message):
         await app.send_message(message.chat.id, f"Error: {e}")
     finally:
         users_loop.pop(user_id, None)
+
 
 @app.on_message(filters.command("cancel"))
 async def stop_batch(_, message):
