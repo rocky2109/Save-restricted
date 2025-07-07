@@ -130,7 +130,7 @@ import unicodedata
 from datetime import datetime
 from pyrogram.enums import ParseMode
 from telethon.tl.types import DocumentAttributeVideo
-
+from devgagan.core.func import add_text_watermark
 # Clean filename helper
 
 # Clean filename helper
@@ -145,8 +145,9 @@ def clean_filename(text):
 
 
 # Upload handler
-from devgagan.core.func import add_text_watermark
 
+
+async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
         upload_method = await fetch_upload_method(sender)
@@ -165,22 +166,10 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         # ────── Pyrogram Upload ──────
         if upload_method == "Pyrogram":
             if ext in video_formats:
-                # ---- WATERMARK STEP ----
-                watermarked_path = f"watermarked_{file_name}"
-                add_text_watermark(
-                    input_path=file,
-                    output_path=watermarked_path,
-                    text="CHOSEN ONE ⚝",   # Change this to whatever you want as your watermark
-                    font_size=18,
-                    font_color='white',
-                    position='10:10'
-                )
-                file_to_upload = watermarked_path
-                # ------------------------
                 file_type = "Video"
                 dm = await app.send_video(
                     chat_id=target_chat_id,
-                    video=file_to_upload,
+                    video=file,
                     caption=caption,
                     height=height,
                     width=width,
@@ -220,7 +209,6 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 )
                 await asyncio.sleep(2)
                 await log_upload(sender, file_type, dm, "Pyrogram", file_name=file_name)
-        # ...rest of your Telethon upload code...
 
         # ────── Telethon Upload ──────
         elif upload_method == "Telethon":
