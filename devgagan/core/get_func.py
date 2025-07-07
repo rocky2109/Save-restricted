@@ -146,8 +146,6 @@ def clean_filename(text):
 
 # Upload handler
 
-
-async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
 async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
     try:
         upload_method = await fetch_upload_method(sender)
