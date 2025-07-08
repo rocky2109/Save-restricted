@@ -644,7 +644,7 @@ def format_caption(original_caption, sender, custom_caption):
     replacements = load_replacement_words(sender)
 
     # ✅ Replace all @mentions with your bot's handle
-    original_caption = re.sub(r'@\w+', '@Src_pro_bot', original_caption)
+    original_caption = re.sub(r'@\w+', '@Chosen_Onex', original_caption)
 
     # ✅ Replace all URLs with your custom invite link
     original_caption = re.sub(
@@ -653,9 +653,9 @@ def format_caption(original_caption, sender, custom_caption):
         original_caption
     )
     # ✅ Remove everything after 'Extracted By ...'
-    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(Downloaded By)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
-    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Src_pro_bot', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Extracted By)[^\n]*', r'\1 @Chosen_Onex', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Downloaded By)[^\n]*', r'\1 @Chosen_Onex', original_caption, flags=re.IGNORECASE)
+    original_caption = re.sub(r'(Downloaded By:)[^\n]*', r'\1 @Chosen_Onex', original_caption, flags=re.IGNORECASE)
 
 
 
@@ -728,7 +728,7 @@ user_caption_preferences = {}
 async def set_rename_command(user_id, custom_rename_tag):
     user_rename_preferences[str(user_id)] = custom_rename_tag
 
-get_user_rename_preference = lambda user_id: user_rename_preferences.get(str(user_id), '⛥ @II_LevelUp_II')
+get_user_rename_preference = lambda user_id: user_rename_preferences.get(str(user_id), '⚝ @Chosen_Onex')
 
 async def set_caption_command(user_id, custom_caption):
     user_caption_preferences[str(user_id)] = custom_caption
