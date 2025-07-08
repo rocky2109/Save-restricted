@@ -1074,33 +1074,52 @@ import re
 import asyncio
 import unicodedata
 
+import re
+import unicodedata
+
 def strip_unicode_junk(text: str) -> str:
-    """Remove fancy fonts but preserve normal spaces"""
+    """Remove stylized junk but preserve Indian language text and matras like ી િ ુ ે ા ૂ ૌ."""
     clean = []
     for char in text:
-        name = unicodedata.name(char, "")
         codepoint = ord(char)
+        name = unicodedata.name(char, "")
 
-        # Keep normal spaces (U+0020) and no-break spaces (U+00A0)
-        if char in (' ', '\u00A0'):
-            clean.append(' ')  # Convert all spaces to normal space
+        # ✅ Preserve Gujarati & Indian scripts including matras
+        if (
+            0x0900 <= codepoint <= 0x097F or  # Devanagari
+            0x0A80 <= codepoint <= 0x0AFF or  # Gujarati
+            0x0980 <= codepoint <= 0x09FF or  # Bengali
+            0x0B80 <= codepoint <= 0x0BFF or  # Tamil
+            0x0C00 <= codepoint <= 0x0C7F or  # Telugu
+            0x0C80 <= codepoint <= 0x0CFF or  # Kannada
+            0x0D00 <= codepoint <= 0x0D7F     # Malayalam
+        ):
+            clean.append(char)
             continue
 
-        # Basic Latin characters (including numbers, letters, basic punctuation)
-        if (0x0020 <= codepoint <= 0x007E or  # Basic Latin
-            0x00A0 <= codepoint <= 0x00FF or  # Latin-1 Supplement
-            0x0100 <= codepoint <= 0x017F):   # Latin Extended-A
-            if not any(style in name for style in [
-                "MATHEMATICAL", "DOUBLE-STRUCK", "BOLD",
-                "ITALIC", "SCRIPT", "FRAKTUR"
+        # ✅ Preserve basic Latin and digits
+        if (
+            0x0020 <= codepoint <= 0x007E or
+            0x00A0 <= codepoint <= 0x00FF
+        ):
+            if any(x in name for x in [
+                'BOLD', 'ITALIC', 'SCRIPT', 'FRAKTUR', 'DOUBLE-STRUCK', 'CIRCLED', 'TAG'
             ]):
-                clean.append(char)
-    
-    # Normalize spaces (collapse multiple spaces, keep single spaces)
+                continue
+            clean.append(char)
+            continue
+
+        # ✅ Allow some safe symbols
+        if char in (' ', '.', '-', '_', '(', ')', '[', ']'):
+            clean.append(char)
+
     result = ''.join(clean)
-    result = re.sub(r'[^\w\s-]', '', result)  # Still remove other special chars
-    result = re.sub(r'[ \t]+', ' ', result)   # Only collapse horizontal whitespace
+
+    # 🧼 Normalize spacing (convert multiple dashes/underscores/spaces)
+    result = re.sub(r'[ \-_]+', ' ', result)
+
     return result.strip()
+
 
 # ✅ Clean rename function with junk filter
 async def rename_file(file, sender, caption=None):
