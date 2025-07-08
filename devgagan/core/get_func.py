@@ -1129,7 +1129,7 @@ async def rename_file(file, sender, caption=None):
     base_name = os.path.basename(base_name)
 
     # Apply text transformations
-    base_name = re.sub(r'@\w+', '@Src_pro_bot', base_name)  # Replace mentions
+    base_name = re.sub(r'@\w+', '𖣐 @Chosen_Onex', base_name)  # Replace mentions
     for word in delete_words:
         base_name = base_name.replace(word, "")  # Remove banned words
     for word, replace_word in replacements.items():
