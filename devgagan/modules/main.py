@@ -29,6 +29,10 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import subprocess
 from pyrogram.types import Message
 from devgagan.modules.shrink import is_user_verified
+from devgagan.core.mongo.referral_db import get_points, consume_points
+from devgagan.core.mongo.plans_db import add_premium
+import datetime
+
 async def generate_random_name(length=8):
     return ''.join(random.choices(string.ascii_lowercase, k=length))
 
@@ -45,10 +49,36 @@ async def process_and_upload_link(userbot, user_id, msg_id, link, retry_count, m
     finally:
         pass
 
-# Function to check if the user can proceed
-async def check_interval(user_id, freecheck):
-    if freecheck != 1 or await is_user_verified(user_id):  # Premium or owner users can always proceed
-        return True, None
+user_points = await get_points(user_id)
+
+# Check if user is not premium (freemium) and not verified (i.e., not paid or owner)
+if freecheck == 1 and not await is_user_verified(user_id):
+    if user_points < 10:
+        bot_username = (await app.get_me()).username
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+        share_button = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📣 Share & Earn Points", url=f"https://t.me/share/url?url={ref_link}&text=🚀 Try this awesome bot to unlock Telegram media!")],
+        ])
+        await message.reply_text(
+            f"🚫 You need at least **10 referral points** to use the /batch command.\n\n"
+            f"📎 Your Referral Link:\n`{ref_link}`\n\n"
+            f"🪙 Each referral gives +1 point.\n"
+            f"💡 10 points = 1 day premium access.\n"
+            f"🔍 Use /mypoints to check your balance.",
+            reply_markup=share_button
+        )
+        return
+
+    # Use 10 points to give 1-day plan
+    granted = await consume_points(user_id, 10)
+    if granted:
+        expire_time = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        await add_premium(user_id, expire_time)
+        await message.reply("🎉 You’ve unlocked 1-day premium access using 10 referral points!")
+    else:
+        await message.reply("⚠️ Could not grant access. Try again.")
+        return
+
 
     now = datetime.now()
 
@@ -163,6 +193,17 @@ async def process_special_links(userbot, user_id, msg, link):
         await set_interval(user_id, interval_minutes=45)
     else:
         await msg.edit_text("Invalid link format.")
+
+@app.on_message(filters.command("mypoints") & filters.private)
+async def mypoints_cmd(_, message):
+    points = await get_points(message.from_user.id)
+    days = points // 10
+    await message.reply_text(
+        f"📊 You currently have **{points} referral point(s)**.\n"
+        f"🔓 Eligible for: **{days} day(s)** of premium access.\n"
+        f"💡 Use /batch to activate if you have 10 or more points."
+    )
+
 
 @app.on_message(filters.command("batch") & filters.private)
 async def batch_link(_, message):
