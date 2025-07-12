@@ -3,23 +3,18 @@
 # Description: A Pyrogram bot for downloading files from Telegram channels or groups 
 #              and uploading them back to Telegram.
 # Author: Gagan
-# GitHub: https://github.com/devgaganin/
-# Telegram: https://t.me/team_spy_pro
-# YouTube: https://youtube.com/@dev_gagan
-# Created: 2025-01-11
-# Last Modified: 2025-01-11
-# Version: 2.0.5
-# License: MIT License
 # ---------------------------------------------------
 
 import asyncio
 import logging
 from pyrogram import Client
-from pyrogram.enums import ParseMode 
+from pyrogram.enums import ParseMode
 from config import API_ID, API_HASH, BOT_TOKEN, STRING, MONGO_DB
-from telethon.sync import TelegramClient
+from telethon import TelegramClient
+from telethon.errors import FloodWaitError
 from motor.motor_asyncio import AsyncIOMotorClient
 import time
+import os
 
 loop = asyncio.get_event_loop()
 
@@ -41,37 +36,43 @@ app = Client(
 
 pro = Client("ggbot", api_id=API_ID, api_hash=API_HASH, session_string=STRING)
 
-sex = TelegramClient('sexrepo', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-
+# Use a persistent Telethon session
+telethon_client = TelegramClient("telethon_bot_session", API_ID, API_HASH)
 
 # MongoDB setup
 tclient = AsyncIOMotorClient(MONGO_DB)
-tdb = tclient["telegram_bot"]  # Your database
-token = tdb["tokens"]  # Your tokens collection
+tdb = tclient["telegram_bot"]
+token = tdb["tokens"]
 
 async def create_ttl_index():
-    """Ensure the TTL index exists for the `tokens` collection."""
     await token.create_index("expires_at", expireAfterSeconds=0)
 
-# Run the TTL index creation when the bot starts
 async def setup_database():
     await create_ttl_index()
     print("MongoDB TTL index created.")
 
-# You can call this in your main bot file before starting the bot
-
 async def restrict_bot():
     global BOT_ID, BOT_NAME, BOT_USERNAME
+
+    # Start Pyrogram bots
     await setup_database()
     await app.start()
     getme = await app.get_me()
     BOT_ID = getme.id
     BOT_USERNAME = getme.username
-    if getme.last_name:
-        BOT_NAME = getme.first_name + " " + getme.last_name
-    else:
-        BOT_NAME = getme.first_name
+    BOT_NAME = f"{getme.first_name} {getme.last_name}" if getme.last_name else getme.first_name
+
     if STRING:
         await pro.start()
+
+    # Start Telethon bot
+    try:
+        await telethon_client.start(bot_token=BOT_TOKEN)
+        me = await telethon_client.get_me()
+        logging.info(f"Telethon Bot Started as @{me.username}")
+    except FloodWaitError as e:
+        logging.warning(f"FloodWaitError: wait for {e.seconds} seconds before restarting Telethon client.")
+    except Exception as e:
+        logging.error(f"Error while starting Telethon client: {e}")
 
 loop.run_until_complete(restrict_bot())
