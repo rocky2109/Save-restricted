@@ -24,6 +24,8 @@ from devgagan.core.func import *
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_DB, WEBSITE_URL, AD_API, LOG_GROUP  
+from devgagan.core.mongo.referral_db import add_points, mark_referred, was_referred
+
 
 tclient = AsyncIOMotorClient(MONGO_DB)
 tdb = tclient["telegram_bot"]
@@ -36,7 +38,14 @@ async def create_ttl_index():
  
  
 Param = {}
- 
+ # ✅ Referral Handling Logic
+if param and param.startswith("ref_"):
+    referrer_id = int(param.replace("ref_", ""))
+    if referrer_id != user_id and not await was_referred(user_id):
+        await add_points(referrer_id, 1)
+        await mark_referred(user_id)
+        await message.reply_text("✅ You were referred! Your referrer earned +1 point 🪙")
+
  
 async def generate_random_param(length=8):
     """Generate a random parameter."""
