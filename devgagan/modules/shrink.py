@@ -24,8 +24,7 @@ from devgagan.core.func import *
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_DB, WEBSITE_URL, AD_API, LOG_GROUP  
-from devgagan.core.mongo.referral_db import add_points, mark_referred, was_referred
-
+from pyrogram.types import Message
 
 tclient = AsyncIOMotorClient(MONGO_DB)
 tdb = tclient["telegram_bot"]
@@ -38,14 +37,7 @@ async def create_ttl_index():
  
  
 Param = {}
- # ✅ Referral Handling Logic
-if param and param.startswith("ref_"):
-    referrer_id = int(param.replace("ref_", ""))
-    if referrer_id != user_id and not await was_referred(user_id):
-        await add_points(referrer_id, 1)
-        await mark_referred(user_id)
-        await message.reply_text("✅ You were referred! Your referrer earned +1 point 🪙")
-
+ 
  
 async def generate_random_param(length=8):
     """Generate a random parameter."""
@@ -83,9 +75,9 @@ async def token_handler(client, message):
     user_id = message.chat.id
 
     if len(message.command) <= 1:
-        image_url = "https://freeimage.host/i/F35exwP"  # must end with .jpg/.png etc.
-        join_button = InlineKeyboardButton("Main Channel", url="https://t.me/II_LevelUP_II")
-        premium = InlineKeyboardButton("💎 Premium Courses", url="https://t.me/+eJQiBsIpvrwxMTZl")
+        image_url = "https://freeimage.host/i/F5dGOsj"  # must end with .jpg/.png etc.
+        join_button = InlineKeyboardButton("✈️ Main Channel", url="https://t.me/II_LevelUP_II")
+        premium = InlineKeyboardButton("🦋 Contact Owner", url="https://t.me/Chosen_Onex")
         keyboard = InlineKeyboardMarkup([
             [join_button],
             [premium]
@@ -98,14 +90,15 @@ async def token_handler(client, message):
             image_url,            
             caption=(
                 f"👋 **Hello, {user_mention}! Welcome to Save Restricted Bot!**\n\n"
-                "🔒 I help you **unlock and save content** from channels or groups that don't allow forwarding.\n\n"
+                "🔒 I Can Help You To **Save And Forward Content** from channels or groups that don't allow forwarding.🤫\n\n"
                 "📌 **How to use me:**\n"
                 "➤ Just **send me the post link** if it's Public\n"
                 "🔓 I'll fetch the media or message for you.\n\n"
+                "> 💠 Use /batch For Bulk Forwarding...💀\n"
                 "🔐 **Private channel post?**\n"
                 "➤ First do /login to save posts from Private Channel\n\n"
-                "💡 Need help? Send /guide for more details also use /help\n\n"
-                "⚡ Bot Made by CHOSEN ONE ⚝"
+                "💡 Need help? Send /guide\n For More Features Use /settings 😉 \n\n"
+                ">⚡ Bot Made by CHOSEN ONE ⚝"
             ),
             reply_markup=keyboard,  # ✅ fixed here
             message_effect_id=5104841245755180586
@@ -115,7 +108,7 @@ async def token_handler(client, message):
     param = message.command[1] if len(message.command) > 1 else None
     freecheck = await chk_user(message, user_id)
     if freecheck != 1:
-        await message.reply("You are a premium user no need of token 😉")
+        await message.reply("You are a premium user Cutie 😉\n\n Just /start & Use Me  🫠")
         return
  
      
@@ -132,6 +125,27 @@ async def token_handler(client, message):
             await message.reply("✅ You have been verified successfully! Enjoy your session for next 3 hours.")
             return
         else:
-            await message.reply("❌ Invalid or expired verification link. Please generate a new token.")
+            await message.reply("❌ Invalid or expired verification link. Please generate a new token.")       
             return
+
+# 🔗 /sharelink command
+@app.on_message(filters.command("shareme"))
+async def sharelink_handler(client, message: Message):
+    bot = await client.get_me()
+    bot_username = bot.username
+
+    bot_link = f"https://t.me/{bot_username}?start=True"
+    share_link = f"https://t.me/share/url?url={bot_link}&text=🚀%20Check%20out%20this%20awesome%20bot%20to%20unlock%20restricted%20Telegram%20content!%20Try%20now%20"
+
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📤 Share Me With Others 🫠", url=share_link)]
+    ])
+
+    await message.reply_text(
+        f"✨ **Spread the Magic!**\n\n"
+        f"Help others discover this bot that can save **restricted channel media**, even if forwarding is off! 🔒\n\n"
+        f"Click a button below 👇 share me with your friends!",
+        reply_markup=reply_markup
+    )
+
  
