@@ -459,7 +459,7 @@ async def get_final_caption(msg, sender):
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
     # Replace @mentions with @Real_Pirates
-    final_caption = re.sub(r'@\w+', '@II_LevelUP_II', final_caption)
+    final_caption = re.sub(r'@\w+', '@Chosen_Onex', final_caption)
 
     # Replace all links with your channel link
     final_caption = re.sub(r'https?://\S+|www\.\S+', 'https://t.me/II_Way_to_Success_II', final_caption)
